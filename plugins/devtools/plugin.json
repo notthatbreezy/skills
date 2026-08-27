@@ -1,7 +1,7 @@
 {
   "name": "brownch-devtools",
-  "description": "Personal Copilot skills for moderated PAW reviews, type-driven development, offscreen Windows UI automation, and public egress sampling.",
-  "version": "1.0.0",
+  "description": "Personal Copilot skills for evidence-based communication, moderated PAW reviews, type-driven development, Windows UI automation, and network diagnostics.",
+  "version": "1.1.0",
   "author": {
     "name": "brownch_microsoft",
     "url": "https://github.com/brownch_microsoft"
@@ -10,6 +10,7 @@
   "repository": "https://github.com/brownch_microsoft/devtools",
   "keywords": [
     "code-review",
+    "communication",
     "paw",
     "type-safety",
     "windows",

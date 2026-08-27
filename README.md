@@ -105,6 +105,7 @@ For local plugin development:
 
 | Capability | Kind | Purpose |
 |---|---|---|
+| `evidence-based-technical-communication` | Skill | Human-facing technical updates grounded in verified outcomes, causes, consequences, and next actions. |
 | `paw-moderated-local-review` | Skill | Local PAW Society-of-Thought review with human moderation, editable pending GitHub comments, and authorization-only submission. |
 | `type-driven-development` | Skill | Type-oriented design, boundary parsing, closed state models, and compiler-guided refactoring. |
 | `type-safety-reviewer` | Custom agent | Read-only review for concrete type-safety and invalid-state failures. |
