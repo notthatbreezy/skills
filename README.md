@@ -5,30 +5,95 @@ Personal GitHub Copilot skills and agents distributed as one native Copilot plug
 The repository is private. Do not add credentials, tokens, connection strings, private keys,
 customer data, production evidence, or machine-bound coordination archives.
 
-## Install
+## Try it now
 
-Requirements:
+### Ask an agent to install everything
 
-- GitHub Copilot CLI with plugin support
-- Access to `brownch_microsoft/devtools`
-- PowerShell 7 or Windows PowerShell 5.1
+Send this message to a GitHub Copilot CLI agent:
 
-Clone the repository, then run:
+```text
+Install all Copilot tools from the private GitHub repository
+https://github.com/brownch_microsoft/devtools.
+
+Use the native Copilot plugin marketplace. Do not copy individual skill or agent files into my
+Copilot configuration. If the brownch-devtools marketplace or plugin is already installed, update
+it instead of treating that as an error.
+
+Run the appropriate commands from this set:
+
+copilot plugin marketplace add brownch_microsoft/devtools
+copilot plugin marketplace update brownch-devtools
+copilot plugin install brownch-devtools@brownch-devtools
+copilot plugin update brownch-devtools
+
+Then verify that `copilot plugin marketplace list` includes brownch-devtools and that
+`copilot plugin list` includes brownch-devtools@brownch-devtools. Tell me whether installation or
+update succeeded and remind me to start a new Copilot session or run /restart.
+```
+
+The agent should install one plugin containing every maintained skill and custom agent in this
+repository.
+
+### Install directly with Copilot CLI
+
+For a first installation:
 
 ```powershell
+copilot plugin marketplace add brownch_microsoft/devtools
+copilot plugin marketplace browse brownch-devtools
+copilot plugin install brownch-devtools@brownch-devtools
+copilot plugin list
+```
+
+Start a new Copilot session or run `/restart` after installation.
+
+**Requirements**:
+
+- [GitHub Copilot CLI](https://github.com/github/copilot-cli) with plugin support
+- Access to `brownch_microsoft/devtools`
+- GitHub authentication that can read the private repository
+
+### Install with the repository script
+
+The repository script handles both first installation and future updates:
+
+```powershell
+git clone https://github.com/brownch_microsoft/devtools.git
+Set-Location .\devtools
 .\Install-DevTools.ps1
 ```
 
 The installer uses Copilot's supported marketplace and plugin commands. It does not copy files into
-Copilot configuration directories:
+Copilot configuration directories. It requires PowerShell 7 or Windows PowerShell 5.1.
+
+### Update
+
+Run the installer again, or use the native commands:
 
 ```powershell
-copilot plugin marketplace add brownch_microsoft/devtools
-copilot plugin install brownch-devtools@brownch-devtools
+copilot plugin marketplace update brownch-devtools
+copilot plugin update brownch-devtools
+copilot plugin list
 ```
 
-Running the installer again refreshes the marketplace and updates the installed plugin. Start a new
-Copilot session or run `/restart` after installation.
+To ask an agent to update everything, send:
+
+```text
+Update my brownch-devtools Copilot plugin. Refresh the brownch-devtools marketplace, update the
+brownch-devtools plugin, verify the installed version with `copilot plugin list`, and report the
+result. Do not reinstall individual skills or agents. Remind me to start a new Copilot session or
+run /restart.
+```
+
+### Uninstall
+
+```powershell
+copilot plugin uninstall brownch-devtools
+```
+
+This removes the installed plugin but leaves the marketplace registered.
+
+### Develop locally
 
 For local plugin development:
 
