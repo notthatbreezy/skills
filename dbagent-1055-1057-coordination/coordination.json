@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "name": "dbagent-1055-1057",
+  "assignmentTemplate": "C:\\Users\\brownch\\OneDrive - Microsoft\\Documents\\DevTools\\dbagent-1055-1057-coordination\\assignment-template.md",
+  "telex": {
+    "scope": "dbagent-1055-1057",
+    "coordinatorReadyTimeoutSeconds": 180
+  },
+  "terminal": {
+    "window": "dbagent-1055-1057"
+  },
+  "launch": {
+    "executable": "agency",
+    "arguments": [
+      "copilot",
+      "--yolo",
+      "--mcp",
+      "workiq",
+      "--mcp",
+      "enghub",
+      "--mcp",
+      "es-chat",
+      "--hub"
+    ]
+  },
+  "worktrees": [
+    {
+      "name": "integration",
+      "path": "C:\\Projects\\dbagent-1055-1057-cache-efficiency",
+      "branch": "work/1055-1057-cache-efficiency",
+      "baseBranch": "main",
+      "integration": true,
+      "createIfMissing": false,
+      "environmentScript": "C:\\Projects\\dbagent-1055-1057-cache-efficiency\\script\\worktree-env.ps1"
+    }
+  ],
+  "sessions": [
+    {
+      "name": "dbagent-1055-1057-coordinator",
+      "role": "coordinator",
+      "address": "dbagent-1055-1057-coordinator",
+      "worktree": "integration",
+      "writeAuthority": "none",
+      "prompt": "C:\\Users\\brownch\\OneDrive - Microsoft\\Documents\\DevTools\\dbagent-1055-1057-coordination\\coordinator.md"
+    },
+    {
+      "name": "dbagent-1055-1057-implementer-1",
+      "role": "implementer",
+      "address": "dbagent-1055-1057-worker-implementation-1",
+      "worktree": "integration",
+      "writeAuthority": "claimed-files-only",
+      "prompt": "C:\\Users\\brownch\\OneDrive - Microsoft\\Documents\\DevTools\\dbagent-1055-1057-coordination\\worker-integration-implementation.md"
+    },
+    {
+      "name": "dbagent-1055-1057-validator-1",
+      "role": "validator",
+      "address": "dbagent-1055-1057-worker-validation-1",
+      "worktree": "integration",
+      "writeAuthority": "none",
+      "prompt": "C:\\Users\\brownch\\OneDrive - Microsoft\\Documents\\DevTools\\dbagent-1055-1057-coordination\\worker-validation.md"
+    },
+    {
+      "name": "dbagent-1055-1057-reviewer-1",
+      "role": "reviewer",
+      "address": "dbagent-1055-1057-worker-review-1",
+      "worktree": "integration",
+      "writeAuthority": "none",
+      "prompt": "C:\\Users\\brownch\\OneDrive - Microsoft\\Documents\\DevTools\\dbagent-1055-1057-coordination\\worker-independent-review.md"
+    }
+  ]
+}
+

@@ -1,0 +1,23 @@
+{
+  "skill_name": "stable-public-ip-sampler",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Check whether this machine has a stable pair of public egress IPs over one minute. Do not show the addresses.",
+      "expected_output": "Runs the bundled sampler with default 0/30/60 timing and reports sanitized validity, distinctness, stability, request, proxy, redirect, cache, and persistence metadata.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Sample api.ipify.org and ifconfig.me three times and tell me whether either endpoint changes addresses.",
+      "expected_output": "Uses one reused HttpClient, no retries or fallbacks, and reports per-endpoint unique counts without exposing values.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Add both detected IPs to my Azure PostgreSQL firewall.",
+      "expected_output": "Does not mutate Azure or firewall configuration. It may measure the addresses, but explains that deployment requires separate authorization and tooling.",
+      "files": []
+    }
+  ]
+}

@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "name": "replace-with-coordination-name",
+  "runtimeDirectory": "%LOCALAPPDATA%\\copilot-coordination\\replace-with-coordination-name",
+  "assignmentTemplate": "C:\\absolute\\path\\to\\assignment-template.md",
+  "telex": {
+    "scope": "replace-with-unique-scope",
+    "coordinatorReadyTimeoutSeconds": 180
+  },
+  "terminal": {
+    "window": "replace-with-terminal-window-name"
+  },
+  "launch": {
+    "executable": "agency",
+    "arguments": [
+      "copilot",
+      "--yolo",
+      "--mcp",
+      "workiq",
+      "--mcp",
+      "enghub",
+      "--mcp",
+      "es-chat",
+      "--hub"
+    ]
+  },
+  "console": {
+    "name": "replace-with-scope-console",
+    "db": "%USERPROFILE%\\.telex\\telex.db",
+    "addressFilter": "replace-with-unique-scope",
+    "pollSeconds": 1,
+    "backfill": "200",
+    "utc": false
+  },
+  "worktrees": [
+    {
+      "name": "integration",
+      "path": "C:\\Projects\\replace-with-integration-worktree",
+      "branch": "work/replace-with-target-branch",
+      "baseBranch": "main",
+      "integration": true,
+      "createIfMissing": false,
+      "environmentScript": "C:\\Projects\\replace-with-integration-worktree\\script\\worktree-env.ps1"
+    }
+  ],
+  "sessions": [
+    {
+      "name": "replace-with-coordinator-session",
+      "role": "coordinator",
+      "model": "gpt-5.6-sol",
+      "address": "replace-with-unique-scope-coordinator",
+      "worktree": "integration",
+      "writeAuthority": "none",
+      "prompt": "C:\\absolute\\path\\to\\coordinator.md"
+    },
+    {
+      "name": "replace-with-integration-implementer",
+      "role": "implementer",
+      "model": "gpt-5.6-sol",
+      "address": "replace-with-unique-scope-implementer-1",
+      "worktree": "integration",
+      "writeAuthority": "claimed-files-only",
+      "prompt": "C:\\absolute\\path\\to\\worker-integration-implementation.md"
+    },
+    {
+      "name": "replace-with-validator",
+      "role": "validator",
+      "model": "claude-sonnet-5",
+      "address": "replace-with-unique-scope-validator-1",
+      "worktree": "integration",
+      "writeAuthority": "none",
+      "prompt": "C:\\absolute\\path\\to\\worker-validation.md"
+    },
+    {
+      "name": "replace-with-reviewer",
+      "role": "reviewer",
+      "model": "claude-opus-5",
+      "address": "replace-with-unique-scope-reviewer-1",
+      "worktree": "integration",
+      "writeAuthority": "none",
+      "prompt": "C:\\absolute\\path\\to\\worker-independent-review.md"
+    }
+  ]
+}
