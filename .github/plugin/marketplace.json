@@ -1,0 +1,18 @@
+{
+  "name": "brownch-devtools",
+  "owner": {
+    "name": "brownch_microsoft"
+  },
+  "metadata": {
+    "description": "Private marketplace for brownch_microsoft development tools.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "brownch-devtools",
+      "source": "plugins/devtools",
+      "description": "Moderated PAW reviews, type-driven development, offscreen Windows UI automation, and public egress sampling.",
+      "version": "1.0.0"
+    }
+  ]
+}
