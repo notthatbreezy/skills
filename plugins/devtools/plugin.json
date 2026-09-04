@@ -1,7 +1,7 @@
 {
   "name": "brownch-devtools",
-  "description": "Personal Copilot skills for Tennex planning and execution, moderated PAW reviews, type-driven development, offscreen Windows UI automation, and public egress sampling.",
-  "version": "1.1.0",
+  "description": "Personal Copilot skills and agents for moderated PAW reviews, type-driven development, offscreen Windows UI automation, and public egress sampling.",
+  "version": "1.2.0",
   "author": {
     "name": "brownch_microsoft",
     "url": "https://github.com/brownch_microsoft"
@@ -11,14 +11,24 @@
   "keywords": [
     "code-review",
     "paw",
-    "planning",
-    "tennex",
     "type-safety",
     "windows",
     "ui-automation",
     "network-diagnostics"
   ],
   "category": "developer-tools",
-  "agents": "agents/",
-  "skills": "skills/"
+  "agents": [
+    "agents/paw-moderated-local-reviewer.agent.md",
+    "agents/type-safety-reviewer.agent.md"
+  ],
+  "skills": [
+    "skills/offscreen-windows-ui-automation",
+    "skills/paw-moderated-local-review",
+    "skills/stable-public-ip-sampler",
+    "skills/type-driven-development"
+  ],
+  "include": [
+    "CHANGELOG.md",
+    "README.md"
+  ]
 }
