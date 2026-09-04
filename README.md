@@ -105,9 +105,8 @@ For local plugin development:
 
 | Capability | Kind | Purpose |
 |---|---|---|
-| `tennex-planning` | Skill | Tennex hierarchy design, acceptance and evidence planning, review coverage, and external tracker mapping. |
-| `tennex-execution` | Skill | Tennex delivery execution, bounded delegation, validation checkpoints, acceptance, recovery, and remote-mutation gates. |
 | `paw-moderated-local-review` | Skill | Local PAW Society-of-Thought review with human moderation, editable pending GitHub comments, and authorization-only submission. |
+| `paw-moderated-local-reviewer` | Custom agent | End-to-end moderated PAW review from a fresh temporary clone with terminal cleanup and authorization-only GitHub submission. |
 | `type-driven-development` | Skill | Type-oriented design, boundary parsing, closed state models, and compiler-guided refactoring. |
 | `type-safety-reviewer` | Custom agent | Read-only review for concrete type-safety and invalid-state failures. |
 | `offscreen-windows-ui-automation` | Skill | Background-safe Windows UI Automation against real application state. |
