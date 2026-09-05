@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TEMPLATE — decision explainer</title>
+<!--
+  HTML DECISION EXPLAINER — reusable template
+  ============================================
+  Use when a decision's consequences unfold over TIME or across STATES, and the
+  reader would otherwise have to hold several hypothetical timelines in their head.
+  A handful of exact values is still a Markdown table. Do not reach for this unless
+  the shape of the answer is comparative.
+
+  Delivery on a local-workstation agent:
+    1. write to a temp path
+    2. verify size and <title>
+    3. launch with the OS default handler
+    4. ALSO print the absolute path — portal preview surfaces can fail
+  Without local shell/browser access, fall back to Mermaid in Markdown.
+
+  Sections below are ordered by value. Delete what you do not need; keep the order.
+-->
+<style>
+  :root{
+    --bg:#0f1419; --panel:#161c25; --panel2:#1c2430; --border:#2b3542;
+    --text:#e6edf3; --muted:#8b98a5; --dim:#5f6b78;
+    --bad:#ff6b6b; --ok:#4ade80; --warn:#fbbf24; --info:#60a5fa; --purple:#c084fc;
+  }
+  *{box-sizing:border-box}
+  html,body{background:var(--bg);color:var(--text);margin:0;padding:0;
+    font-family:ui-sans-serif,system-ui,"Segoe UI",Roboto,sans-serif;
+    font-size:14px;line-height:1.5;overscroll-behavior:none}
+  .wrap{max-width:1320px;margin:0 auto;padding:20px 16px 56px}
+  header.top{border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:20px}
+  h1{font-size:19px;margin:0 0 6px;font-weight:650;letter-spacing:-.01em}
+  .sub{color:var(--muted);font-size:12.5px}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em}
+  .sub code{background:var(--panel2);padding:1px 5px;border-radius:3px}
+  h2{font-size:15px;margin:0 0 4px;font-weight:640}
+  /* the "how to read this" line — do not skip it, charts do not explain themselves */
+  .note{color:var(--muted);font-size:12.5px;margin:0 0 16px}
+  section{background:var(--panel);border:1px solid var(--border);border-radius:10px;
+    padding:18px;margin-bottom:16px}
+
+  /* ---- 1. SITUATIONS AS ROWS, VERSIONS AS COLUMNS (highest value) ---- */
+  .matrix{overflow-x:auto}
+  .mgrid{display:grid;grid-template-columns:150px repeat(3,minmax(230px,1fr));gap:9px;min-width:900px}
+  .mh{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;
+    display:flex;align-items:center;font-weight:650;padding-right:6px}
+  .colh{border-radius:7px;padding:9px 11px;font-size:12.5px;font-weight:660;border:1px solid}
+  .colh span{display:block;font-size:11px;font-weight:400;color:var(--muted);margin-top:2px;
+    font-family:ui-monospace,Menlo,monospace}
+  .c-before{background:rgba(255,107,107,.08);border-color:rgba(255,107,107,.35)}
+  .c-now{background:rgba(251,191,36,.07);border-color:rgba(251,191,36,.33)}
+  .c-after{background:rgba(74,222,128,.07);border-color:rgba(74,222,128,.33)}
+  .cell{border:1px solid var(--border);border-radius:7px;padding:9px 11px;font-size:12.5px;
+    background:var(--panel2)}
+  .cell .v{display:block;margin-bottom:3px}
+  /* the "why" line is what turns a grid into an explanation */
+  .cell .why{color:var(--muted);font-size:11px;display:block;margin-top:5px;padding-top:5px;
+    border-top:1px solid var(--border)}
+  .rowlab{font-size:12px;font-weight:640;display:flex;align-items:center}
+  .rowlab small{display:block;color:var(--muted);font-weight:400;font-size:11px;margin-top:2px}
+  .sep{grid-column:1 / -1;height:1px;background:var(--border);margin:4px 0}
+  .phase{grid-column:1 / -1;font-size:10.5px;color:var(--dim);text-transform:uppercase;
+    letter-spacing:.07em;font-weight:650;margin-top:8px}
+
+  /* ---- 3. LIFECYCLE BAND: make boundaries explicit ---- */
+  .invlab{font-size:11px;font-weight:650;color:var(--purple);display:flex;align-items:center;
+    text-transform:uppercase;letter-spacing:.05em}
+  .inv{border:1px dashed rgba(192,132,252,.45);background:rgba(192,132,252,.06);
+    border-radius:7px;padding:8px 11px;font-size:12px}
+  .inv .st{font-weight:660;display:block;margin-bottom:2px}
+  .inv .det{color:var(--muted);font-size:11px}
+  .inv.term{border-style:solid;border-color:rgba(192,132,252,.3)}
+
+  /* ---- 4. THREE-COLUMN FAILURE COMPARISON ---- */
+  .scen{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:10px}
+  @media(max-width:980px){.scen{grid-template-columns:1fr}}
+  .col{border:1px solid var(--border);border-radius:9px;overflow:hidden}
+  .col h3{margin:0;padding:10px 13px;font-size:12.5px;font-weight:660;
+    border-bottom:1px solid var(--border)}
+  .col h3 span{display:block;font-size:11px;font-weight:400;color:var(--muted);margin-top:2px}
+  .col.old h3{background:rgba(255,107,107,.09)}
+  .col.now h3{background:rgba(251,191,36,.09)}
+  .col.fix h3{background:rgba(74,222,128,.09)}
+  .body{padding:12px 13px}
+  .seq{display:flex;flex-direction:column;gap:0}
+  .op{background:var(--panel2);border:1px solid var(--border);border-radius:6px;
+    padding:8px 10px;font-size:12px}
+  .op .lbl{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;display:block}
+  .op.ok{border-color:rgba(74,222,128,.45)}
+  .op.fail{border-color:rgba(255,107,107,.55);background:rgba(255,107,107,.07)}
+  .op.skip{border-style:dashed;color:var(--dim)}
+  .down{height:14px;width:2px;background:var(--dim);margin:0 auto;position:relative}
+  .down::after{content:"";position:absolute;bottom:-1px;left:50%;transform:translateX(-50%);
+    border-left:4px solid transparent;border-right:4px solid transparent;
+    border-top:5px solid var(--dim)}
+  .outcome{margin-top:11px;padding:10px 11px;border-radius:7px;font-size:12px;border:1px solid}
+  .outcome.bad{border-color:rgba(255,107,107,.45);background:rgba(255,107,107,.07)}
+  .outcome.mid{border-color:rgba(251,191,36,.45);background:rgba(251,191,36,.07)}
+  .outcome.good{border-color:rgba(74,222,128,.42);background:rgba(74,222,128,.07)}
+  .outcome b{display:block;margin-bottom:3px;font-size:12.5px}
+  .outcome .q{color:var(--muted);font-size:11.5px;margin-top:6px;padding-top:6px;
+    border-top:1px solid var(--border)}
+
+  /* ---- linear flow, for a single path ---- */
+  .chain{display:flex;flex-direction:column;gap:0;margin:4px 0 0}
+  .step{background:var(--panel2);border:1px solid var(--border);border-radius:7px;
+    padding:9px 12px;font-size:13px}
+  .step .k{color:var(--muted);font-size:11px;font-family:ui-monospace,Menlo,monospace}
+
+  /* ---- state chips: never colour alone, always a word ---- */
+  .state{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
+  .chip{font-family:ui-monospace,Menlo,monospace;font-size:11px;padding:2px 8px;
+    border-radius:20px;font-weight:640}
+  .chip.warn{background:rgba(251,191,36,.16);color:var(--warn)}
+  .chip.ok{background:rgba(74,222,128,.15);color:var(--ok)}
+  .chip.bad{background:rgba(255,107,107,.16);color:var(--bad)}
+  .chip.info{background:rgba(96,165,250,.15);color:var(--info)}
+  .chip.none{background:rgba(139,152,165,.13);color:var(--muted)}
+  .good{color:var(--ok)} .bad{color:var(--bad)} .neutral{color:var(--muted)}
+
+  /* ---- callouts ---- */
+  .callout{margin-top:14px;border-left:3px solid var(--info);background:rgba(96,165,250,.06);
+    border-radius:0 7px 7px 0;padding:11px 13px;font-size:12.5px}
+  .callout.bad{border-left-color:var(--bad);background:rgba(255,107,107,.06)}
+  .callout.good{border-left-color:var(--ok);background:rgba(74,222,128,.06)}
+  .callout.warn{border-left-color:var(--warn);background:rgba(251,191,36,.06)}
+  .callout.purple{border-left-color:var(--purple);background:rgba(192,132,252,.06)}
+  .callout .ct{font-weight:660;display:block;margin-bottom:3px}
+  .callout code{background:rgba(255,255,255,.06);padding:1px 5px;border-radius:3px}
+
+  table{width:100%;border-collapse:collapse;margin-top:8px;font-size:12.5px}
+  th{text-align:left;color:var(--muted);font-size:10.5px;text-transform:uppercase;
+    letter-spacing:.06em;padding:6px 9px;border-bottom:1px solid var(--border);font-weight:650}
+  td{padding:8px 9px;border-bottom:1px solid rgba(43,53,66,.55);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td.o{font-weight:660;white-space:nowrap}
+  ul.tight{margin:4px 0 0;padding-left:17px}
+  ul.tight li{margin-bottom:3px}
+  footer{color:var(--dim);font-size:11.5px;margin-top:20px;padding-top:12px;
+    border-top:1px solid var(--border)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- Header: what this is, what it covers, at which revision. Someone opening it
+     next week must not have to ask. -->
+<header class="top">
+  <h1>&lt;The decision, as a plain-language sentence&gt;</h1>
+  <div class="sub">&lt;work item&gt; · &lt;branch/revision&gt; · every cell traced to source at this revision</div>
+</header>
+
+<!-- ============================================================
+     SECTION 1 — situations as rows, versions as columns.
+     The highest-value layout. Use it first if it fits at all.
+     Optionally interleave lifecycle bands (purple) to show boundaries.
+     ============================================================ -->
+<section>
+  <h2>The same situations, under each version</h2>
+  <p class="note">&lt;One line on how to read this. Name the subject being followed.&gt;</p>
+
+  <div class="matrix">
+  <div class="mgrid">
+    <div class="mh"></div>
+    <div class="colh c-before">Today<span>&lt;baseline&gt;</span></div>
+    <div class="colh c-now">This change<span>&lt;revision&gt;</span></div>
+    <div class="colh c-after">Proposed<span>&lt;option&gt;</span></div>
+
+    <div class="phase">Episode 1 — &lt;what starts here&gt;</div>
+
+    <!-- Lifecycle band: delete if there is no enclosing scope worth showing -->
+    <div class="invlab">&lt;Scope&gt; 1</div>
+    <div class="inv"><span class="st">created <span class="chip info">active</span></span><span class="det">&lt;why&gt;</span></div>
+    <div class="inv"><span class="st">created <span class="chip info">active</span></span><span class="det">&lt;why&gt;</span></div>
+    <div class="inv"><span class="st">created <span class="chip info">active</span></span><span class="det">&lt;why&gt;</span></div>
+
+    <div class="rowlab">Run 1<small>&lt;condition&gt;</small></div>
+    <div class="cell"><span class="v bad">✗ &lt;outcome&gt;</span><span class="why">&lt;why it is wrong&gt;</span></div>
+    <div class="cell"><span class="v good">✓ &lt;outcome&gt;</span><span class="why">&lt;what changed&gt;</span></div>
+    <div class="cell"><span class="v good">✓ &lt;outcome&gt;</span><span class="why">&lt;unchanged, or better&gt;</span></div>
+
+    <div class="invlab">&lt;Scope&gt; 1</div>
+    <div class="inv term"><span class="st">resolved <span class="chip none">&lt;outcome&gt;</span></span><span class="det">Terminal.</span></div>
+    <div class="inv term"><span class="st">resolved <span class="chip info">&lt;outcome&gt;</span></span><span class="det">&lt;note&gt;</span></div>
+    <div class="inv term"><span class="st">resolved <span class="chip info">&lt;outcome&gt;</span></span><span class="det">Identical.</span></div>
+
+    <div class="sep"></div>
+
+    <div class="rowlab">Steady state<small>&lt;long after&gt;</small></div>
+    <div class="cell"><span class="v neutral">&lt;state&gt;</span><span class="why">&lt;why&gt;</span></div>
+    <div class="cell"><span class="v bad">✗ &lt;stuck state&gt;</span><span class="why">&lt;why it never ends&gt;</span></div>
+    <div class="cell"><span class="v good">✓ &lt;state&gt;</span><span class="why">&lt;why it ends&gt;</span></div>
+  </div>
+  </div>
+
+  <div class="callout warn">
+    <span class="ct">Read the columns as a progression, not a ranking</span>
+    &lt;A baseline that looks clean often looks clean because it records nothing. Say so
+    explicitly, or the reader will read the first column as the good one.&gt;
+  </div>
+</section>
+
+<!-- ============================================================
+     SECTION 2 — three-column failure comparison.
+     Hold the failure constant; vary ONLY the ordering or condition.
+     Each column ends in a verdict: what state is left, is it recoverable.
+     ============================================================ -->
+<section>
+  <h2>The same failure, under three orderings</h2>
+  <p class="note">In every column: &lt;the constant&gt;. Only &lt;the variable&gt; differs.</p>
+
+  <div class="scen">
+    <div class="col old">
+      <h3>Before<span>&lt;what the earlier review caught&gt;</span></h3>
+      <div class="body">
+        <div class="seq">
+          <div class="op ok"><span class="lbl">&lt;operation 1&gt;</span><span class="good">✓ succeeds</span></div>
+          <div class="down"></div>
+          <div class="op fail"><span class="lbl">&lt;operation 2&gt;</span><span class="bad">✗ throws</span></div>
+        </div>
+        <div class="state">
+          <span class="chip ok">&lt;entity: state&gt;</span>
+          <span class="chip bad">&lt;what is missing&gt;</span>
+        </div>
+        <div class="outcome bad">
+          <b>&lt;Verdict in two words.&gt;</b>
+          &lt;What state is left behind and why it cannot be recovered.&gt;
+          <div class="q">&lt;The consequence the reader should carry away.&gt;</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col now">
+      <h3>Current<span>&lt;revision&gt;</span></h3>
+      <div class="body">
+        <div class="seq">
+          <div class="op ok"><span class="lbl">&lt;operation 2&gt;</span><span class="good">✓ succeeds</span></div>
+          <div class="down"></div>
+          <div class="op fail"><span class="lbl">&lt;operation 1&gt;</span><span class="bad">✗ throws</span></div>
+        </div>
+        <div class="state">
+          <span class="chip warn">&lt;entity: state&gt;</span>
+          <span class="chip bad">&lt;residual problem&gt;</span>
+        </div>
+        <div class="outcome mid">
+          <b>&lt;Verdict.&gt;</b> &lt;What improved, and what new cost it bought.&gt;
+          <div class="q">&lt;The case that makes it worse than it first looks.&gt;</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col fix">
+      <h3>Proposed<span>&lt;option name&gt;</span></h3>
+      <div class="body">
+        <div class="seq">
+          <div class="op ok"><span class="lbl">&lt;operation&gt;</span><span class="good">✓ succeeds</span></div>
+          <div class="down"></div>
+          <div class="op fail"><span class="lbl">&lt;operation&gt;</span><span class="bad">✗ throws</span></div>
+          <div class="down"></div>
+          <div class="op skip"><span class="lbl">&lt;operation&gt;</span>never written</div>
+        </div>
+        <div class="state">
+          <span class="chip warn">&lt;entity: state&gt;</span>
+          <span class="chip ok">&lt;property preserved&gt;</span>
+        </div>
+        <div class="outcome good">
+          <b>&lt;Verdict.&gt;</b> &lt;Why this one holds.&gt;
+          <div class="q">Cost: &lt;the honest price&gt;.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     SECTION 3 — kill the plausible-but-wrong mitigation.
+     If you or anyone else offered a reason the problem is harmless,
+     verify it and show the working. This is where credibility is won.
+     ============================================================ -->
+<section>
+  <h2>Why &lt;the comforting explanation&gt; is wrong</h2>
+  <p class="note">&lt;Who claimed it, and that you checked rather than assumed.&gt;</p>
+  <table>
+    <tbody>
+      <tr><td class="o">&lt;The mechanism&gt;</td><td>&lt;what it actually is&gt;</td></tr>
+      <tr><td class="o">&lt;How it works&gt;</td><td>&lt;its real scope&gt;</td></tr>
+      <tr><td class="o">In this case</td><td>&lt;why the scope does not cover it&gt;</td></tr>
+    </tbody>
+  </table>
+  <div class="callout bad">
+    <span class="ct">So the real residual cost is not &lt;the comfortable version&gt;</span>
+    &lt;The uncomfortable version, stated plainly.&gt;
+  </div>
+</section>
+
+<!-- ============================================================
+     SECTION 4 — options with honest costs, and what does NOT change.
+     A page that only argues for the recommendation is advocacy.
+     ============================================================ -->
+<section>
+  <h2>The options, plainly</h2>
+  <table>
+    <thead><tr><th>Option</th><th>&lt;property A&gt;</th><th>&lt;property B&gt;</th><th>Cost</th></tr></thead>
+    <tbody>
+      <tr><td class="o" style="color:var(--ok)">A · &lt;name&gt; ← recommended</td><td class="good">yes</td><td class="good">yes</td><td>&lt;size&gt;</td></tr>
+      <tr><td class="o">B · &lt;name&gt;</td><td class="good">yes</td><td class="good">yes</td><td>&lt;size, and what it adds to maintain&gt;</td></tr>
+      <tr><td class="o">C · accept + document</td><td class="good">yes</td><td class="bad">no — disclosed instead</td><td>&lt;size&gt;</td></tr>
+      <tr><td class="o">D · &lt;rejected&gt;</td><td class="bad">no</td><td class="good">yes</td><td>0 — but reinstates &lt;the earlier defect&gt;</td></tr>
+    </tbody>
+  </table>
+  <div class="callout good">
+    <span class="ct">What does not change under any option</span>
+    <ul class="tight">
+      <li>&lt;Invariant that survives — say how it was verified.&gt;</li>
+      <li>&lt;Another. Naming these is what lets a reviewer accept a limitation.&gt;</li>
+    </ul>
+  </div>
+</section>
+
+<!-- Footer: sources, and which claims were reproduced rather than reasoned about. -->
+<footer>
+  Sources: <code>&lt;file&gt;</code> · <code>&lt;file&gt;</code>. Traced at <code>&lt;revision&gt;</code>;
+  &lt;which behaviours were reproduced live rather than read&gt;.
+</footer>
+
+</div>
+</body>
+</html>
