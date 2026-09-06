@@ -11,7 +11,7 @@ This root maps the workflow; phase skills hold procedures and checklists. Run on
 
 Recover the working agreement, current phase, exact source/artifact revisions, completed writes, and action grants. If recovery is uncertain, consult [custom-paw-recovery](../custom-paw-recovery/SKILL.md) before acting. Do not bootstrap a duplicate workflow.
 
-Load the detailed skill for the current phase **before doing that phase's work**. Load conditional companions only when their trigger applies; do not preload the entire package. These are installable skill names in this package. 
+Load the detailed skill for the current phase **before doing that phase's work**. Load conditional companions only when their trigger applies; do not preload the entire package. These are installable skill names in this package.
 
 **Required-skill availability:** If any skill required for the current phase is unavailable or cannot be loaded, stop the phase and report BLOCKED to the user. Name the missing skill, explain which work it blocks, and state what is needed to proceed. Do not skip it, reconstruct its instructions from memory, or substitute another skill or reviewer without explicit user approval. Resume only after the required skill is available or the user explicitly approves a revised requirement. Missing required external skills, named agents, or specialist personas remains BLOCKED until resolved or explicitly waived by the user.
 

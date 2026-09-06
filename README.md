@@ -138,7 +138,8 @@ must report `BLOCKED` instead of silently substituting behavior.
   `paw-sot`, `paw-plan-review`, `paw-impl-review`, `paw-review-workflow`).
 - `clear-workplace-writing` skill.
 - Named `test-plan-reviewer` custom agent (v1.0.0 as referenced by workflow policy text).
-- `planning-review-canvas` skill when a planning handoff canvas is requested.
+- `planning-review-canvas` skill for the required planning approval handoff, plus
+  `html-visuals` and `canvas-apps` when their presentation triggers apply.
 - PilotSwarm runtime tools expected by the instructions (for example durable facts/artifacts and
   native delegation tooling).
 

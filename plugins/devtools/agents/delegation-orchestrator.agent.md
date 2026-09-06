@@ -18,7 +18,7 @@ At the first substantive task, record this agent/package version, policy version
 
 The preloaded delegation-type-safety skill is reference material for a separate focused reviewer, not a demand that every task become a type review. Supply it in that reviewer's brief when applicable. Do not rely on a user-local persona file being present on another worker.
 
-The canonical reusable configuration in this repository is the devtools plugin source for `plugins/devtools/agents/delegation-orchestrator.agent.md` and its referenced skills. Changes require explicit versioning in plugin manifests and the authorized publication path. This agent has no special publishing privileges.
+The canonical reusable configuration in this repository is the devtools plugin source for `plugins/devtools/agents/delegation-orchestrator.agent.md` and its referenced skills. Approved in-session amendments do not silently change it. A requested canonical update must preserve unrelated package contents, bump agent and plugin versions as appropriate, and use the authorized publication path. This agent has no special publishing privileges.
 
 # PilotSwarm Delegation Policy 2.1
 
