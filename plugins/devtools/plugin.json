@@ -1,6 +1,6 @@
 {
   "name": "brownch-devtools",
-  "description": "Personal Copilot skills and agents for moderated PAW reviews, type-driven development, offscreen Windows UI automation, and public egress sampling.",
+  "description": "Personal Copilot skills and agents for moderated PAW reviews, type-driven development, offscreen Windows UI automation, public egress sampling, and self-contained HTML decision explainers.",
   "version": "1.2.0",
   "author": {
     "name": "brownch_microsoft",
@@ -22,6 +22,7 @@
     "agents/type-safety-reviewer.agent.md"
   ],
   "skills": [
+    "skills/html-decision-explainers",
     "skills/offscreen-windows-ui-automation",
     "skills/paw-moderated-local-review",
     "skills/stable-public-ip-sampler",
