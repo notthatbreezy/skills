@@ -1,7 +1,7 @@
 {
   "name": "brownch-devtools",
-  "description": "Personal Copilot skills and agents for moderated PAW reviews, type-driven development, offscreen Windows UI automation, public egress sampling, and self-contained HTML decision explainers.",
-  "version": "1.2.0",
+  "description": "Personal Copilot skills and agents for moderated and custom PAW workflows, bounded delegation orchestration, type-driven reviews, offscreen Windows UI automation, public egress sampling, and self-contained HTML decision explainers.",
+  "version": "1.3.0",
   "author": {
     "name": "brownch_microsoft",
     "url": "https://github.com/brownch_microsoft"
@@ -11,6 +11,7 @@
   "keywords": [
     "code-review",
     "paw",
+    "workflow-orchestration",
     "type-safety",
     "windows",
     "ui-automation",
@@ -18,10 +19,22 @@
   ],
   "category": "developer-tools",
   "agents": [
+    "agents/delegation-orchestrator.agent.md",
     "agents/paw-moderated-local-reviewer.agent.md",
     "agents/type-safety-reviewer.agent.md"
   ],
   "skills": [
+    "skills/custom-paw-delegation",
+    "skills/custom-paw-deliver",
+    "skills/custom-paw-finalize",
+    "skills/custom-paw-implement-phase",
+    "skills/custom-paw-plan",
+    "skills/custom-paw-plan-gate",
+    "skills/custom-paw-recovery",
+    "skills/custom-paw-review-policy",
+    "skills/custom-paw-setup",
+    "skills/custom-paw-workflow",
+    "skills/delegation-type-safety",
     "skills/html-decision-explainers",
     "skills/offscreen-windows-ui-automation",
     "skills/paw-moderated-local-review",
