@@ -1,12 +1,17 @@
 [CmdletBinding()]
 param(
-    [string] $MarketplaceSource = 'brownch_microsoft/devtools'
+    [ValidateNotNullOrEmpty()]
+    [ValidateScript({ -not [string]::IsNullOrWhiteSpace($_) })]
+    [string] $MarketplaceSource = 'notthatbreezy/skills',
+
+    [switch] $MigrateMarketplaceSource
 )
 
 $ErrorActionPreference = 'Stop'
 
 $marketplaceName = 'brownch-devtools'
 $pluginName = 'brownch-devtools'
+$marketplaceWasReRegistered = $false
 
 if (-not (Get-Command copilot -ErrorAction SilentlyContinue)) {
     throw 'GitHub Copilot CLI is required. Install or update it before running this installer.'
@@ -31,7 +36,14 @@ if ($LASTEXITCODE -ne 0) {
 
 $marketplacePattern = "(?m)^\s*[^\r\n]*\b$([Regex]::Escape($marketplaceName))\b"
 if ($registeredMarketplaces -match $marketplacePattern) {
-    Invoke-Copilot -Arguments @('plugin', 'marketplace', 'update', $marketplaceName)
+    if ($MigrateMarketplaceSource) {
+        # Re-registration is explicit because --force also uninstalls plugins from this marketplace.
+        Invoke-Copilot -Arguments @('plugin', 'marketplace', 'remove', $marketplaceName, '--force')
+        Invoke-Copilot -Arguments @('plugin', 'marketplace', 'add', $MarketplaceSource)
+        $marketplaceWasReRegistered = $true
+    } else {
+        Invoke-Copilot -Arguments @('plugin', 'marketplace', 'update', $marketplaceName)
+    }
 } else {
     Invoke-Copilot -Arguments @('plugin', 'marketplace', 'add', $MarketplaceSource)
 }
@@ -42,7 +54,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $pluginPattern = "(?m)^\s*[^\r\n]*\b$([Regex]::Escape($pluginName))\b"
-if ($installedPlugins -match $pluginPattern) {
+if (-not $marketplaceWasReRegistered -and $installedPlugins -match $pluginPattern) {
     Invoke-Copilot -Arguments @('plugin', 'update', $pluginName)
 } else {
     Invoke-Copilot -Arguments @('plugin', 'install', "$pluginName@$marketplaceName")

@@ -36,6 +36,10 @@ Every mode, including Lite, requires the complete planning bundle and the five d
 
 The coordinator owns integration and acceptance. Bind evidence to exact inputs, verify findings, preserve dissent, and never label missing evidence PASS. Read the review policy before review or remediation.
 
+Treat artifact hygiene as a cross-phase invariant. Derive the applicable authoritative outputs and locations from the active phase, repository instructions, and recorded working agreement; do not create optional or inapplicable files to satisfy a generic filename list or count. Keep stable names for current outputs and facts for compact workflow state. Give every scratch path a bounded purpose, owner, and cleanup point. Retain historical snapshots only when an exact-input record is justified, and label their source identity and status.
+
+Consolidate evidence when that reduces duplication, but never discard a required report, dissent, approval, disposition, or lineage. Preserve hashes and artifact links across handoffs. A verdict applies only to the exact bytes reviewed and never transfers to a replacement, consolidated, or regenerated file. Pinned artifacts aid session recovery; they are not permanent repository backup. After an accepted durable handoff, remove only temporary files owned by this workflow and scheduled for cleanup. Never remove unrelated files, another worker's scratch, or a session/workspace root.
+
 At each exit, persist phase status, current hashes, evidence, dispositions, grants and the next authorized action. Route backward when a material change invalidates earlier obligations. Stop at failed gates, unresolved authority or agreed human checkpoints; otherwise continue inside the existing grant without repeated permission requests.
 
 ## Conditional companions

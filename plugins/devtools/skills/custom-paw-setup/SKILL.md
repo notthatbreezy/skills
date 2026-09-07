@@ -15,7 +15,7 @@ Start here for a new workflow. On resumption, recover existing decisions first; 
 
 **Exit gate:** Objective, current baseline, authorized stages, artifact aliases/lifecycle, remediation policy and human stops are explicit.
 
-Require WorkflowContext.md, Spec.md, CodeResearch.md, ImplementationPlan.md, concrete test contracts, and a requirement-to-proof coverage map for planning review. Plan documentation ownership and produce Docs.md at its designated phase. Equivalent filenames may be declared as aliases, but must preserve every required content area. Issues inform the specification; they do not replace the planning bundle. Full, Lite, and custom routing all use the same mandatory specialist reviews and human approval gate.
+Require the planning content areas represented by WorkflowContext.md, Spec.md, CodeResearch.md, ImplementationPlan.md, concrete test contracts, and a requirement-to-proof coverage map for planning review. Declare stable current filenames and locations from the active repository and workflow requirements; equivalent files may be selected as aliases, but must preserve every required content area. Plan documentation ownership and produce Docs.md or its declared equivalent at its designated phase when enduring documentation is applicable. Do not create optional or inapplicable files merely to populate a generic checklist. Issues inform the specification; they do not replace the planning bundle. Full, Lite, and custom routing all use the same mandatory specialist reviews and human approval gate.
 
 ## 2. Establish the working agreement
 
@@ -37,6 +37,8 @@ Record the following in WorkflowContext or the explicitly selected equivalent:
 | Execution policy | Governing agent/package and delegation-policy identity; dependency order, write ownership, validation commands and prerequisites, integration owner; recorded conflicts/adaptations. |
 | Action grants | Separately record permission for source edits, local commits, push, PR creation, comments/reviews, issue/project edits, merge, release, deployment. |
 | Recovery | Current artifact hashes, decisions, outstanding findings, child sessions, completed writes, next authorized action. |
+
+For each declared file output, record its stable current name, authoritative location, owner, lifecycle, and required handoff. Use durable facts instead of files for compact state such as phase, grants, pointers, and identifiers. Declare any scratch root narrowly below the task workspace, its owner, permitted contents, and cleanup gate; never designate the workspace, repository, session, or artifact-store root for recursive cleanup. Historical copies require a concrete exact-input or audit need and must retain source hashes, links, lineage, and current/superseded status.
 
 A grant may cover a clearly bounded sequence of actions; do not re-ask for every routine step inside that grant. Never infer a broader grant from a narrower one. Approval of an option, plan, canvas presentation, or review verdict does not itself authorize implementation or GitHub writes.
 
