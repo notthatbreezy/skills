@@ -21,7 +21,7 @@ Use before any research, reviewer or implementation worker. The coordinator rema
 
 Use native `spawn_agent`, not an alternate in-process mechanism. Resolve exact available models before assigning them. Honor current owner staffing policy; choose a capable tier for the task without inferring universal speed, cost, or model superiority from anecdotes.
 
-Every worker packet includes exact source/artifact identities, objective, bounded question or owned files, prerequisites, exclusions, completion evidence, read/write authority, stop conditions, output destinations, and whether further delegation is permitted. Default to no onward delegation unless the coordinator deliberately assigns it.
+Every worker packet includes exact source/artifact identities, objective, bounded question or owned files, prerequisites, exclusions, completion evidence, read/write authority, stop conditions, output destinations, and whether further delegation is permitted. Name only outputs applicable to that assignment and identify the stable current destination for each. Give worker scratch a bounded path, owner, allowed purpose, and cleanup gate. Default to no onward delegation unless the coordinator deliberately assigns it.
 
 Initial reviewers are read-only. Parallelize independent research, review lenses, or disjoint implementation after interface contracts and prerequisites are ready. Keep one integration owner. Do not ask multiple workers to write the same shared interface independently.
 
@@ -31,7 +31,7 @@ For final pre-PR review, staff the full `paw-sot` specialist set through `paw-fi
 
 Use `contract.wakeOn: material_change` for finite work whose result is needed. Qualifying results wake the parent; do not create timers merely to poll children. Reuse review seats through the active correction cycle. Verify the worker actually received the intended scope, particularly after generic agent startup or queued detail.
 
-Parents and children do not share a filesystem. Transfer files through artifacts and verify hashes. Archive required outputs in the coordinating session before retiring children. Verify delivery rather than accepting "done" as evidence. Close finite seats once their outputs and closure obligations are accepted.
+Parents and children do not share a filesystem. Transfer files through artifacts and verify hashes and links. Create a historical snapshot only when preserving a justified exact worker input or report; label its lineage and do not transfer an old verdict to changed bytes. Consolidation may remove redundant transport copies only after the coordinator verifies the durable handoff, while preserving every required report, dissent, disposition, approval, and lineage. Remove only worker-owned temporary files named in the packet, never unrelated files or a worker/session root. Archive required outputs in the coordinating session before retiring children. Verify delivery rather than accepting "done" as evidence. Close finite seats once their outputs and closure obligations are accepted.
 
 ## 3. Return
 

@@ -1,13 +1,13 @@
 {
   "name": "brownch-devtools",
   "description": "Personal Copilot skills and agents for moderated and custom PAW workflows, bounded delegation orchestration, type-driven reviews, offscreen Windows UI automation, public egress sampling, and self-contained HTML decision explainers.",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "author": {
-    "name": "brownch_microsoft",
-    "url": "https://github.com/brownch_microsoft"
+    "name": "notthatbreezy",
+    "url": "https://github.com/notthatbreezy"
   },
-  "homepage": "https://github.com/brownch_microsoft/devtools",
-  "repository": "https://github.com/brownch_microsoft/devtools",
+  "homepage": "https://github.com/notthatbreezy/skills",
+  "repository": "https://github.com/notthatbreezy/skills",
   "keywords": [
     "code-review",
     "paw",

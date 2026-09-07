@@ -2,6 +2,7 @@
 
 This plugin installs the repository's maintained Copilot skills and custom agents as one versioned
 unit. Install it through the `brownch-devtools` marketplace rather than copying individual files.
+Its canonical source is `https://github.com/notthatbreezy/skills`, under `plugins/devtools`.
 
 The plugin intentionally has no hooks, MCP servers, LSP servers, or post-install scripts.
 

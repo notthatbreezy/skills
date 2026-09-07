@@ -13,7 +13,7 @@ Send this message to a GitHub Copilot CLI agent:
 
 ```text
 Install all Copilot tools from the private GitHub repository
-https://github.com/brownch_microsoft/devtools.
+https://github.com/notthatbreezy/skills.
 
 Use the native Copilot plugin marketplace. Do not copy individual skill or agent files into my
 Copilot configuration. If the brownch-devtools marketplace or plugin is already installed, update
@@ -21,7 +21,7 @@ it instead of treating that as an error.
 
 Run the appropriate commands from this set:
 
-copilot plugin marketplace add brownch_microsoft/devtools
+copilot plugin marketplace add notthatbreezy/skills
 copilot plugin marketplace update brownch-devtools
 copilot plugin install brownch-devtools@brownch-devtools
 copilot plugin update brownch-devtools
@@ -39,7 +39,7 @@ repository.
 For a first installation:
 
 ```powershell
-copilot plugin marketplace add brownch_microsoft/devtools
+copilot plugin marketplace add notthatbreezy/skills
 copilot plugin marketplace browse brownch-devtools
 copilot plugin install brownch-devtools@brownch-devtools
 copilot plugin list
@@ -50,7 +50,7 @@ Start a new Copilot session or run `/restart` after installation.
 **Requirements**:
 
 - [GitHub Copilot CLI](https://github.com/github/copilot-cli) with plugin support
-- Access to `brownch_microsoft/devtools`
+- Access to `notthatbreezy/skills`
 - GitHub authentication that can read the private repository
 
 ### Install with the repository script
@@ -58,13 +58,26 @@ Start a new Copilot session or run `/restart` after installation.
 The repository script handles both first installation and future updates:
 
 ```powershell
-git clone https://github.com/brownch_microsoft/devtools.git
-Set-Location .\devtools
+git clone https://github.com/notthatbreezy/skills.git
+Set-Location .\skills
 .\Install-DevTools.ps1
 ```
 
 The installer uses Copilot's supported marketplace and plugin commands. It does not copy files into
 Copilot configuration directories. It requires PowerShell 7 or Windows PowerShell 5.1.
+
+An existing `brownch-devtools` marketplace registration keeps its current source when it is
+updated. To migrate an existing registration from the former repository to this canonical source,
+run the installer once with explicit re-registration:
+
+```powershell
+.\Install-DevTools.ps1 -MigrateMarketplaceSource
+```
+
+Migration uses Copilot's required forced marketplace removal, which temporarily uninstalls plugins
+from that marketplace, then registers `notthatbreezy/skills` and reinstalls
+`brownch-devtools`. Do not use the migration switch for a local development registration unless you
+intend to replace it.
 
 ### Update
 
@@ -98,8 +111,12 @@ This removes the installed plugin but leaves the marketplace registered.
 For local plugin development:
 
 ```powershell
-.\Install-DevTools.ps1 -MarketplaceSource $PWD
+.\Install-DevTools.ps1 -MarketplaceSource $PWD -MigrateMarketplaceSource
 ```
+
+The migration switch is required when `brownch-devtools` is already registered because a normal
+marketplace update refreshes its existing source; it does not change that source to
+`-MarketplaceSource`. Omit the switch on the first installation, when no registration exists.
 
 ## Included capabilities
 
@@ -116,7 +133,7 @@ For local plugin development:
 | `custom-paw-review-policy` | Skill | Keeps severity, disposition, and posting authority separate with grounded remediation policy. |
 | `custom-paw-recovery` | Skill | Recovers durable workflow state and prevents duplicate or stale write actions after interruption. |
 | `delegation-type-safety` | Skill | Focused type-safety reviewer persona for delegated plan/code review seats. |
-| `delegation-orchestrator` | Custom agent | Coordinates bounded direct/delegated execution using Delegation Policy 2.1 with v1.0.1 amendment text. |
+| `delegation-orchestrator` | Custom agent | Coordinates bounded direct/delegated execution using Delegation Policy 2.1 with v1.0.2 amendment text. |
 | `paw-moderated-local-review` | Skill | Local PAW Society-of-Thought review with human moderation, editable pending GitHub comments, and authorization-only submission. |
 | `paw-moderated-local-reviewer` | Custom agent | End-to-end moderated PAW review from a fresh temporary clone with terminal cleanup and authorization-only GitHub submission. |
 | `type-driven-development` | Skill | Type-oriented design, boundary parsing, closed state models, and compiler-guided refactoring. |
@@ -157,6 +174,7 @@ Install-DevTools.ps1             Native marketplace/plugin bootstrap
 
 - Keep installable assets under `plugins/devtools/`.
 - Update the version in both `plugin.json` and `marketplace.json` for releases.
+- Run `.\Tests\Install-DevTools.Tests.ps1` in PowerShell 7 and Windows PowerShell 5.1.
 - Store editable source, not ZIP exports or generated packages.
 - Use repository-relative links and paths inside plugin assets.
 - Validate PowerShell, JSON, plugin loading, skill discovery, and agent discovery before release.

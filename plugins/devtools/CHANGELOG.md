@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.3.1
+
+- Move canonical repository and package identity references to `notthatbreezy/skills` while
+  preserving the installed `brownch-devtools` marketplace and plugin names.
+- Add explicit marketplace source migration to the installer without silently replacing existing
+  repository or local-development registrations.
+- Define cross-phase artifact hygiene and its setup, delegation, and recovery mechanics.
+- Bump the delegation orchestrator to v1.0.2 for its canonical source identity update.
+- Bump plugin and marketplace manifests to version `1.3.1`.
+
 ## 1.3.0
 
 - Add the `delegation-orchestrator` custom agent (v1.0.1 amendment text) to the installable plugin package.
