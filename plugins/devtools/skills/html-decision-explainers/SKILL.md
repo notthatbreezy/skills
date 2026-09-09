@@ -1,8 +1,8 @@
 ---
 name: html-decision-explainers
-description: Explain a design decision whose consequences unfold over time or across states by building a self-contained HTML page for local review. Use when a reviewer must compare current behaviour, proposed behaviour, and rejected alternatives, or must see where a state machine ends up. Produces the HTML page and stops there. Not for a handful of exact values — that is still a Markdown table.
+description: Explain a design decision whose consequences unfold over time or across states by building one self-contained HTML page for review. Use when a reviewer must compare current behaviour, proposed behaviour, and rejected alternatives, or must see where a state machine ends up. Produces the HTML page and stops there. Not for a handful of exact values — that is still a Markdown table.
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
   origin: "Generalized from a six-round pre-PR review (dbagent #1211), 2026-09-05"
 ---
 
@@ -103,21 +103,19 @@ unknown.
 
 ## Delivery
 
-On an agent with local shell and browser access:
+Use the supported `draw_canvas` visual surface by default. Use `show_artifact` when
+the user explicitly wants a file. The previously reported portal cross-session
+display defect was repaired and re-verified, so do not default to local temp files.
 
-1. Write the file to a temp path.
-2. Verify size and `<title>` — cheap, and catches a truncated write.
-3. Launch with the OS default handler.
-4. **Also print the absolute path.**
+When the portal is unavailable or a local-browser view is explicitly needed:
 
-Step 4 is not optional. In the origin session the portal canvas and the artifact
-preview both rendered a *different session's* document, and three attempts through
-those surfaces cost a round-trip each. Offer the plain file path early rather than
-retrying a failing surface.
+1. Write the file to a temporary path.
+2. Verify its size and `<title>`.
+3. Launch it with the OS default handler.
+4. Print the absolute path as an environment-specific fallback.
 
-Without local shell access this skill does not apply — it produces a local HTML page
-and nothing else. Explain in prose, or use whatever visual format the surface you do
-have supports.
+If none of these delivery surfaces is available, explain the limitation instead of
+claiming the page was presented.
 
 ## Where this skill stops
 
@@ -132,11 +130,12 @@ requirements rather than an implied part of building the explainer.
 
 A working template with all of the above wired up, including the full CSS and inline
 comments on when each section earns its place, is stored alongside this skill as
-`template.html`. Copy it rather than rebuilding from this description.
+`template.html`. Confirm it exists before relying on it, and reuse it rather than
+rebuilding the page from scratch.
 
 ## Scope caveat
 
 Generalized from one long code-review session with one reviewer on a Windows
-workstation. The **layouts** should transfer to any multi-state design decision. The
-**delivery mechanics** assume local shell and browser access — validate the fit
-before applying them mechanically elsewhere.
+workstation and corroborated once against the repaired portal display path. The
+**layouts** should transfer to any multi-state design decision; re-corroborate the
+practice in other settings rather than treating one environment as universal.

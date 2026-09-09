@@ -7,15 +7,11 @@ description: Discover repository constraints and produce a requirements-traceabl
 
 ## 1. At entry
 
-**Review and execution:** This workflow determines required review coverage and gates; risk-based review is the fallback where no specific guidelines apply. The `delegation-orchestrator` agent runtime instructions govern direct versus delegated work, model/effort selection and execution tools. See [custom-paw-delegation](../custom-paw-delegation/SKILL.md); stop and report genuine conflicts.
+Load paw-planning skill - that is the overall guide. The following guidance is meant to supplement.
 
-Require the working agreement and permitted research sources. Resolve requirements before planning implementation; do not treat hypotheses as guarantees.
+**Review and execution:** This workflow determines required review coverage and gates; risk-based review is the fallback where no specific guidelines apply.
 
-**Consult before work:** Use the named assignments below in order. Every workflow mode produces the complete planning bundle; no issue-only or Lite exception applies. Load the required skills at their assigned stage and follow their instructions.
-
-**Required-skill availability:** If any skill required for the current phase is unavailable or cannot be loaded, stop the phase and report BLOCKED to the user. Name the missing skill, explain which work it blocks, and state what is needed to proceed. Do not skip it, reconstruct its instructions from memory, or substitute another skill or reviewer without explicit user approval. Resume only after the required skill is available or the user explicitly approves a revised requirement. Missing required external skills, named agents, or specialist personas remains BLOCKED until resolved or explicitly waived by the user.
-
-**Exit gate:** Requirements, exclusions, concrete deliverables, dependency order, test contracts, coverage map, and documentation owners form a complete planning bundle. Then run [custom-paw-plan-gate](../custom-paw-plan-gate/SKILL.md), where the generalist performs `paw-plan-review` as one of five reviewers. Author preflight does not replace panel approval.
+**Exit gate:** Requirements, exclusions, concrete deliverables, dependency order, test contracts, coverage map, and documentation owners form a complete planning bundle. Then run [custom-paw-plan-gate](../custom-paw-plan-gate/SKILL.md)
 
 ## 2. Required skill assignments
 
@@ -27,17 +23,15 @@ Require the working agreement and permitted research sources. Resolve requiremen
 | Before implementation planning | Researcher loads `paw-code-research`. | Produce CodeResearch.md with production entry points, consumers, repository conventions, runners, and prerequisites. |
 | While designing the plan | Planning author loads `paw-planning` and `type-driven-development`. | Define bounded phases and test contracts; make domain invariants, parsing boundaries, legal states, errors, and compatibility explicit. Use proportionate type design, not speculative wrappers. |
 | While assigning documentation work | Planning author loads `paw-docs-guidance`. | Name enduring documentation, Docs.md ownership, and the phase that completes each obligation. |
-| After authoring the complete bundle, before implementation | Coordinator runs [custom-paw-plan-gate](../custom-paw-plan-gate/SKILL.md) using `paw-planning-docs-review` and `paw-sot`. | Obtain five independent reviews: general rubber duck using `paw-plan-review`, clear writing, test plan, type safety, and a risk-selected specialist. Preserve all five current-input PASS reports and source-verified synthesis, then obtain explicit human approval. |
+| After authoring the complete bundle, before implementation | Coordinator runs [custom-paw-plan-gate](../custom-paw-plan-gate/SKILL.md) using `paw-planning-docs-review` and `paw-sot`. | Obtain six independent reviews: general rubber duck using `paw-plan-review`, clear writing, test plan, type safety, a risk-selected specialist, and scope creep. Preserve all six current-input PASS reports and source-verified synthesis, then obtain explicit human approval. |
 
 ## 3. Discover repository constraints before planning implementation
 
-Inspect repository instructions, PR templates, design indexes and decision conventions, relevant compatibility/schema guidance, and a nearby completed workstream. Discover the documentation system, actual test/build/lint runners, working directories, private-feed or service prerequisites, and any full pre-push validation requirement.
+Inspect repository instructions, PR templates, design indexes and decision conventions, relevant compatibility/schema guidance, and a nearby completed workstream. Discover the documentation system, actual test/build/lint runners, working directories, private-feed or service prerequisites, and any full pre-push validation requirement. Memorialize this information for quick recall and reference during planning and implementation.
 
 Record documentation ownership during research. Identify whether Docs.md is mandatory, where enduring design documentation belongs, how amendments and indexes work, and whether documentation has a build. Do not discover these conventions for the first time when a PR advisory fails.
 
 Trace the real production path from entry point to the changed behavior and its consumers. Distinguish production wiring from compatibility shims and test-only paths. Identify existing ownership, normalization, admission, error, and persistence helpers before proposing new ones.
-
-Honor the selected source-isolation policy. A fetched prerequisite worktree, a fresh authenticated clone, and a local checkout are not interchangeable. Verify actual repository identity and revision; preserve protected checkout state and unrelated edits. Do not consult excluded branches or derived notes through a worker as a workaround.
 
 Separate source facts from hypotheses. If source cannot establish a required historical or runtime guarantee, state the gap and its consequences. Do not inflate logical deduplication into exactly-once execution, or a successful nominal path into crash recovery.
 

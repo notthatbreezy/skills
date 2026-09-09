@@ -7,11 +7,11 @@ description: Complete repository-required documentation and review the exact int
 
 ## 1. At entry
 
-**Review and execution:** This workflow determines required review coverage and gates; risk-based review is the fallback where no specific guidelines apply. The `delegation-orchestrator` agent runtime instructions govern direct versus delegated work, model/effort selection and execution tools. See [custom-paw-delegation](../custom-paw-delegation/SKILL.md); stop and report genuine conflicts.
+Load `paw-docs-guidance`, repository documentation conventions, `paw-final-review`, and `paw-sot`
 
-Require integrated phase outputs and current source identities. Consult [custom-paw-review-policy](../custom-paw-review-policy/SKILL.md) and, when staffing reviewers, [custom-paw-delegation](../custom-paw-delegation/SKILL.md).
+Require integrated phase outputs and current source identities. Consult [custom-paw-review-policy](../custom-paw-review-policy/SKILL.md), and follow the governing `delegation-orchestrator` agent instructions when staffing reviewers.
 
-**Consult before work:** `paw-docs-guidance`, repository documentation conventions, `paw-final-review`, and `paw-sot`. Set `Final Review Mode: society-of-thought` and `Final Review Specialists: all`. Full SoT, including dedicated type-safety and test specialists, is mandatory before PR preparation. Before starting this phase, load the required skills and follow their instructions.
+Set `Final Review Mode: society-of-thought` and `Final Review Specialists: all`. Full SoT, including dedicated type-safety and test specialists, is mandatory before PR preparation.
 
 **Required-skill availability:** If any skill required for the current phase is unavailable or cannot be loaded, stop the phase and report BLOCKED to the user. Name the missing skill, explain which work it blocks, and state what is needed to proceed. Do not skip it, reconstruct its instructions from memory, or substitute another skill or reviewer without explicit user approval. Resume only after the required skill is available or the user explicitly approves a revised requirement. Missing required external skills, named agents, or specialist personas remains BLOCKED until resolved or explicitly waived by the user.
 
@@ -25,9 +25,9 @@ Docs.md explains the resulting behavior for future maintainers; the PR body expl
 
 Before PR preparation, run `paw-final-review` with `paw-sot` over the exact integrated base/head diff, authoritative requirements, planned deliverables, phase evidence, and documentation. Resolve and record the full specialist roster from `all`; ensure correctness/integration, security, maintainability, and documentation/evidence integrity are covered. Empty scaffolding does not satisfy a promised deliverable.
 
-Explicitly include a separate type-safety reviewer loading `delegation-type-safety` to examine implemented invariants and trust boundaries, and a test specialist to examine actual tests, independent oracles, production-path coverage, negative controls, and execution evidence. If the stock roster lacks either dedicated role, add it; do not treat incidental coverage by another specialist as sufficient. The planning-only `test-plan-reviewer` report does not replace this implementation test review.
+Explicitly include a separate type-safety reviewer with the agent `type-safety-reviewer` to examine implemented invariants and trust boundaries, and a test specialist to examine actual tests, independent oracles, production-path coverage, negative controls, and execution evidence. If the stock roster lacks either dedicated role, add it; do not treat incidental coverage by another specialist as sufficient. The planning-only `test-plan-reviewer` report does not replace this implementation test review.
 
-The five-reviewer limit applies only to planning. Do not reduce final review to five seats, single-model self-review, or an adaptive subset. Missing required reviewers or skills block this gate. The coordinator preserves the independent reports, verifies findings, and synthesizes the result; synthesis alone is not full SoT review.
+The six-reviewer limit applies only to planning. Do not reduce final review to six seats, single-model self-review, or an adaptive subset. Missing required reviewers or skills block this gate. The coordinator preserves the independent reports, verifies findings, and synthesizes the result; synthesis alone is not full SoT review.
 
 Apply the configured moderation policy, source-verify findings, repair within authority, rerun affected proof, and obtain exact-revision closure. Retain useful independent reviewers through the cycle. Re-review after material changes; an earlier PASS does not automatically carry to a new diff.
 

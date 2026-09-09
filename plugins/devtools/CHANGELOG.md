@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.4.0
+
+- Add the packaged `scope-creep-reviewer` agent for tracing planned work to approved requirements
+  and distinguishing necessary enabling work from unauthorized expansion.
+- Expand the mandatory custom PAW planning gate from five reviewers to six by adding the dedicated
+  scope-creep seat.
+- Bump plugin and marketplace manifests to version `1.4.0`.
+
 ## 1.3.1
 
 - Move canonical repository and package identity references to `notthatbreezy/skills` while

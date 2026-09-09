@@ -125,19 +125,20 @@ marketplace update refreshes its existing source; it does not change that source
 | `custom-paw-workflow` | Skill | Routes substantial work through setup, planning, gate, implementation, finalization, and delivery stages with explicit authority and evidence boundaries. |
 | `custom-paw-setup` | Skill | Establishes authority, package/runtime prerequisites, and workflow operating agreement before planning or implementation. |
 | `custom-paw-plan` | Skill | Produces bounded planning artifacts and review-ready proof obligations. |
-| `custom-paw-plan-gate` | Skill | Enforces the mandatory five-seat planning review gate and exact-input approval boundary. |
+| `custom-paw-plan-gate` | Skill | Enforces the mandatory six-seat planning review gate and exact-input approval boundary. |
 | `custom-paw-implement-phase` | Skill | Executes one authorized implementation phase with integrated review/evidence closure requirements. |
 | `custom-paw-finalize` | Skill | Completes required documentation and full final SoT review readiness on integrated outputs. |
 | `custom-paw-deliver` | Skill | Prepares publication handoff while preserving review/approval/write authority boundaries. |
-| `custom-paw-delegation` | Skill | Applies bounded delegation packet design, ownership controls, and worker lifecycle rules. |
 | `custom-paw-review-policy` | Skill | Keeps severity, disposition, and posting authority separate with grounded remediation policy. |
-| `custom-paw-recovery` | Skill | Recovers durable workflow state and prevents duplicate or stale write actions after interruption. |
 | `delegation-type-safety` | Skill | Focused type-safety reviewer persona for delegated plan/code review seats. |
-| `delegation-orchestrator` | Custom agent | Coordinates bounded direct/delegated execution using Delegation Policy 2.1 with v1.0.2 amendment text. |
+| `delegation-orchestrator` | Custom agent | Coordinates bounded direct/delegated execution with cost-conscious model selection, evidence requirements, and explicit authority boundaries. |
+| `test-plan-reviewer` | Custom agent | Independently reviews implementation plans for falsifiable test contracts, fixtures, oracles, failure controls, and phase-exit gates. |
+| `scope-creep-reviewer` | Custom agent | Reviews planning bundles for work that lacks an approved requirement or necessary enabling obligation. |
 | `paw-moderated-local-review` | Skill | Local PAW Society-of-Thought review with human moderation, editable pending GitHub comments, and authorization-only submission. |
 | `paw-moderated-local-reviewer` | Custom agent | End-to-end moderated PAW review from a fresh temporary clone with terminal cleanup and authorization-only GitHub submission. |
 | `type-driven-development` | Skill | Type-oriented design, boundary parsing, closed state models, and compiler-guided refactoring. |
 | `type-safety-reviewer` | Custom agent | Read-only review for concrete type-safety and invalid-state failures. |
+| `html-decision-explainers` | Skill | Builds self-contained HTML explanations for decisions whose consequences unfold across states or time. |
 | `offscreen-windows-ui-automation` | Skill | Background-safe Windows UI Automation against real application state. |
 | `stable-public-ip-sampler` | Skill | Sanitized repeated sampling of public egress IPv4 stability. |
 
@@ -154,9 +155,7 @@ must report `BLOCKED` instead of silently substituting behavior.
 - Core PAW workflow skills and activities (for example `paw-workflow`, `paw-planning-docs-review`,
   `paw-sot`, `paw-plan-review`, `paw-impl-review`, `paw-review-workflow`).
 - `clear-workplace-writing` skill.
-- Named `test-plan-reviewer` custom agent (v1.0.0 as referenced by workflow policy text).
-- `planning-review-canvas` skill for the required planning approval handoff, plus
-  `html-visuals` and `canvas-apps` when their presentation triggers apply.
+- `html-visuals` and `canvas-apps` when their presentation triggers apply.
 - PilotSwarm runtime tools expected by the instructions (for example durable facts/artifacts and
   native delegation tooling).
 
