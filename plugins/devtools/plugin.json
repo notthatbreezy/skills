@@ -1,7 +1,7 @@
 {
   "name": "brownch-devtools",
   "description": "Personal Copilot skills and agents for moderated and custom PAW workflows, bounded delegation orchestration, type-driven reviews, offscreen Windows UI automation, public egress sampling, and self-contained HTML decision explainers.",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "author": {
     "name": "notthatbreezy",
     "url": "https://github.com/notthatbreezy"
@@ -21,16 +21,16 @@
   "agents": [
     "agents/delegation-orchestrator.agent.md",
     "agents/paw-moderated-local-reviewer.agent.md",
+    "agents/scope-creep-reviewer.agent.md",
+    "agents/test-plan-reviewer.agent.md",
     "agents/type-safety-reviewer.agent.md"
   ],
   "skills": [
-    "skills/custom-paw-delegation",
     "skills/custom-paw-deliver",
     "skills/custom-paw-finalize",
     "skills/custom-paw-implement-phase",
     "skills/custom-paw-plan",
     "skills/custom-paw-plan-gate",
-    "skills/custom-paw-recovery",
     "skills/custom-paw-review-policy",
     "skills/custom-paw-setup",
     "skills/custom-paw-workflow",

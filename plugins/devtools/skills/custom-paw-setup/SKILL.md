@@ -7,7 +7,7 @@ description: Establish PAW authority, baseline, artifact lifecycle, review polic
 
 ## 1. At entry
 
-Start here for a new workflow. On resumption, recover existing decisions first; do not recreate branches or artifacts.
+Start here for a new workflow. When resuming a previously started workflow, use `paw-status` to recover existing decisions before acting; do not recreate branches or artifacts.
 
 **Consult before work:** `paw-init` only for a genuinely new authorized workflow; selected `paw-workflow` or `paw-lite`; `paw-status` for recovery. Before starting this phase, load the required skills and follow their instructions.
 
@@ -33,7 +33,7 @@ Record the following in WorkflowContext or the explicitly selected equivalent:
 | Source baseline | Actual repository root, remote, fetched base/head, prerequisite branches, allowed and excluded research sources, isolation strategy. |
 | Workflow | Full, Lite, or custom; stages to run or skip; mandatory gates; artifact-name aliases; reason for adaptations. |
 | Artifact lifecycle | `never-commit`, `commit-and-persist`, or `commit-and-clean`; exact paths; local checkpoint requirements; durable artifact owner. |
-| Review policy | Five-reviewer planning SoT roster and full final SoT roster including test/type specialists; exact input hashes, closure scope, review budget, remediation policy, and explicit human planning approval. |
+| Review policy | Six-reviewer planning SoT roster and full final SoT roster including test/type specialists; exact input hashes, closure scope, review budget, remediation policy, and explicit human planning approval. |
 | Execution policy | Governing agent/package and delegation-policy identity; dependency order, write ownership, validation commands and prerequisites, integration owner; recorded conflicts/adaptations. |
 | Action grants | Separately record permission for source edits, local commits, push, PR creation, comments/reviews, issue/project edits, merge, release, deployment. |
 | Recovery | Current artifact hashes, decisions, outstanding findings, child sessions, completed writes, next authorized action. |
@@ -50,8 +50,8 @@ Document these adaptations when adopting this workflow:
 
 | Stock behavior or ambiguity | This workflow's proposed rule |
 | --- | --- |
-| A planning-bundle review may be disabled or complete with reduced inputs. | The complete planning bundle, five-reviewer SoT panel, source-verified synthesis, and explicit human approval are mandatory in every mode. Missing inputs or required reviewers block the gate; Lite does not bypass it. |
-| Review modes and panel composition are configurable. | Planning uses exactly five reviewers as defined below; the generalist performs `paw-plan-review` within that panel. Final pre-PR review uses full SoT with dedicated type and test specialists, not a reduced panel. These are this workflow's staffing requirements, not claims about stock PAW defaults. |
+| A planning-bundle review may be disabled or complete with reduced inputs. | The complete planning bundle, six-reviewer SoT panel, source-verified synthesis, and explicit human approval are mandatory in every mode. Missing inputs or required reviewers block the gate; Lite does not bypass it. |
+| Review modes and panel composition are configurable. | Planning uses exactly six reviewers as defined below; the generalist performs `paw-plan-review` within that panel. Final pre-PR review uses full SoT with dedicated type and test specialists, not a reduced panel. These are this workflow's staffing requirements, not claims about stock PAW defaults. |
 | A review cycle limit can return completion with remaining findings. | A limit ends the automated cycle, not the defect. Return blocked or request a human disposition; never manufacture PASS. |
 | Smart remediation can rely on agreement or confidence. | The parent first verifies grounding, authority, bounded scope, and absence of a design tradeoff. Consensus alone is insufficient. |
 | Review completion can route directly to implementation or PR. | Routing identifies the next stage; the authorization ledger decides whether it may run. |
@@ -68,16 +68,16 @@ Select the choices that source sessions do not establish as universal:
 | Choice | Proposed default |
 | --- | --- |
 | Scope | Follow the user's requested endpoint; do not extend planning-only work. |
-| Planning gate | `paw-planning-docs-review` in society-of-thought mode with `paw-sot`: five current-input PASS reports and source-verified synthesis, then explicit human approval of the exact reviewed bundle. The coordinator runs and synthesizes the panel; it is not an additional reviewer. |
-| Planning staffing | Exactly five distinct reviewers: general rubber duck loading `paw-plan-review`; clear-writing reviewer loading `clear-workplace-writing`; `test-plan-reviewer` agent v1.0.0; separate type-safety reviewer loading `delegation-type-safety`; and one risk-selected specialist (architecture/integration by default, security for security-sensitive work). |
-| Final review | `Final Review Mode: society-of-thought`; `Final Review Specialists: all`. Use `paw-final-review` and `paw-sot`, with dedicated type-safety and test specialists explicitly included. The planning panel's five-seat limit does not limit final review. |
+| Planning gate | `paw-planning-docs-review` in society-of-thought mode with `paw-sot`: six current-input PASS reports and source-verified synthesis, then explicit human approval of the exact reviewed bundle. The coordinator runs and synthesizes the panel; it is not an additional reviewer. |
+| Planning staffing | Exactly six distinct reviewers: general rubber duck loading `paw-plan-review`; clear-writing reviewer loading `clear-workplace-writing`; `test-plan-reviewer` agent v1.0.0; separate `type-safety-reviewer` agent; one risk-selected specialist (architecture/integration by default, security for security-sensitive work); and the packaged `scope-creep-reviewer` agent. |
+| Final review | `Final Review Mode: society-of-thought`; `Final Review Specialists: all`. Use `paw-final-review` and `paw-sot`, with dedicated type-safety and test specialists explicitly included. The planning panel's six-seat limit does not limit final review. |
 | Remediation | Use the current owner's policy. If none is established, resolve human-first versus bounded autonomous before repairs. |
 | Artifact lifecycle | Resolve explicitly; never infer local commit or publication authority. |
 | Review budget | Bounded cycles with no-progress escalation; unresolved blockers remain blockers. |
 | Check-ins | Milestones and real decisions, not an arbitrary timed cadence. |
 | Publication | Grants specific enough to identify permitted actions; never implied by PASS or presentation. |
 
-Confirm the `test-plan-reviewer` named agent and all required skills can be loaded before staffing review; record their versions or source identities. `test-plan-reviewer` is an agent, not a skill. If a dependency is unavailable, report BLOCKED rather than substituting a generalist or silently skipping it. See [custom-paw-plan-gate](../custom-paw-plan-gate/SKILL.md) for exact assignments and approvals.
+Confirm the `test-plan-reviewer` and `scope-creep-reviewer` named agents and all required skills can be loaded before staffing review; record their versions or source identities. Both named reviewers are agents, not skills. If a dependency is unavailable, report BLOCKED rather than substituting a generalist or silently skipping it. See [custom-paw-plan-gate](../custom-paw-plan-gate/SKILL.md) for exact assignments and approvals.
 
 ## 4. Handoff
 

@@ -5,14 +5,14 @@
   },
   "metadata": {
     "description": "Private marketplace for notthatbreezy development tools.",
-    "version": "1.3.1"
+    "version": "1.4.0"
   },
   "plugins": [
     {
       "name": "brownch-devtools",
       "source": "plugins/devtools",
       "description": "Custom and moderated PAW workflows with bounded delegation orchestration, plus type-driven development and runtime utility skills.",
-      "version": "1.3.1"
+      "version": "1.4.0"
     }
   ]
 }

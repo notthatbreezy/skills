@@ -11,9 +11,11 @@ The plugin intentionally has no hooks, MCP servers, LSP servers, or post-install
 - Custom PAW workflow skills:
   `custom-paw-workflow`, `custom-paw-setup`, `custom-paw-plan`, `custom-paw-plan-gate`,
   `custom-paw-implement-phase`, `custom-paw-finalize`, `custom-paw-deliver`,
-  `custom-paw-delegation`, `custom-paw-review-policy`, `custom-paw-recovery`
+  `custom-paw-review-policy`
 - Delegation/type-safety package assets:
   `delegation-orchestrator` (agent) and `delegation-type-safety` (skill)
+- Planning review package assets:
+  `test-plan-reviewer` (agent) and `scope-creep-reviewer` (agent)
 - Existing maintained assets:
   `paw-moderated-local-review` (skill), `paw-moderated-local-reviewer` (agent),
   `type-driven-development` (skill), `type-safety-reviewer` (agent),
