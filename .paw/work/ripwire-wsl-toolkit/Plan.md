@@ -11,6 +11,11 @@ The implementation will consume pinned upstream `v0.5.0` Linux release assets fo
 It will be independently authored; the unlicensed public launcher gist remains research evidence,
 not source material.
 
+Start with **Phase 0: Live feasibility gate**, before installer or full toolkit implementation.
+Prove both actual Ripwire linked-worktree behavior and the real Windows-to-WSL process boundary
+with a minimal reusable test harness. A successful Git discovery probe alone is not sufficient.
+This planning revision does not authorize executing the gate or downloading/installing Ripwire.
+
 ## Current State Analysis
 
 - The plugin explicitly lists skills in `plugins/devtools/plugin.json`; new skills are not discovered
@@ -84,6 +89,8 @@ Git-backed queries, argument fidelity, failure propagation, and target non-mutat
 
 ## Phase Status
 
+- [ ] **Phase 0: Live feasibility gate** - Prove core Ripwire worktree behavior and real
+  argument/environment/stream transport; stop for a go/no-go decision before Phase 1.
 - [ ] **Phase 1: Package contracts and deterministic core** - Add the skill package, release
   manifest, configuration model, and pure validation/conversion helpers with self-tests.
 - [ ] **Phase 2: Installer and doctor** - Implement repeatable pinned installation and read-only
@@ -91,7 +98,7 @@ Git-backed queries, argument fidelity, failure propagation, and target non-mutat
 - [ ] **Phase 3: Worktree-aware launcher** - Implement Windows Git discovery, WSL translation,
   environment preservation, stream fidelity, and exit propagation.
 - [ ] **Phase 4: Isolated live integration** - Prove real WSL/Ripwire behavior against disposable
-  standalone and linked-worktree fixtures.
+  standalone and linked-worktree fixtures through the finished toolkit, reusing Phase 0 coverage.
 - [ ] **Phase 5: Plugin integration and documentation** - Register the skill, update package
   versions and docs, and record the as-built artifact.
 
@@ -101,10 +108,86 @@ No optional candidates are approved for V1. MCP support requires a new specifica
 
 ---
 
+## Phase 0: Live Feasibility Gate
+
+### Changes Required
+
+- **`Tests/Ripwire-Wsl-Toolkit.Tests.ps1`**: Add an explicit `-Mode Feasibility` using the existing
+  standalone PowerShell test style. Create a disposable Windows Git repository with small C++
+  source files containing a known function and caller, two commits, and a Windows-created linked
+  worktree whose path contains spaces and Unicode. Give the linked worktree a different HEAD from
+  the fixture's main checkout and add an uncommitted symbol/change only there. Neither the skills
+  repository nor any operator project is the Ripwire target; all source/Git mutations use Windows.
+- **`Tests/fixtures/ripwire-wsl/`**: Add only reusable probe assets: a minimal Windows
+  ProcessStartInfo runner, Linux bootstrap, and Linux argument/environment/byte-output probe.
+  Use the same explicit distribution, `wslpath`, child-only WSLENV, `/bin/bash`, raw stream pumps,
+  and Git override contract planned for Phase 3. The probe is test infrastructure, not a second
+  supported launcher. Read the pinned release/hash from `Spec.md` until Phase 1 supplies the
+  manifest; consolidate that metadata into the manifest in Phase 1.
+- Keep acquisition minimal: no production installer, doctor, plugin registration, or user
+  configuration. Require explicit phase execution approval, an existing Ubuntu distribution,
+  and a disposable Linux prefix. Use an already-staged test binary with provenance tying it to
+  the pinned checksummed archive, or obtain separate approval and require both `-AllowDownload`
+  and `-AllowInstall` for checksum-verified staging. Missing prerequisites mean **Blocked**, not
+  permission to enable WSL or replace a distribution.
+- Run the transport probe through **real `wsl.exe` and Bash**, not a fake WSL executable.
+  Record exact argv boundaries and the Linux environment; compare against independent expected
+  values. Test spaced/Unicode/quoted/empty/backslash/equals-sign/path-like values at this lower-level
+  boundary even where the eventual public option grammar rejects those tokens.
+- Run pinned Ripwire through that same transport against both fixture roots, with the sole
+  positional root and `--no-cache`. Prove default orientation, stamped `--for`, a known caller
+  query, and a Git-backed `--pr-context` query against fixture history. Check that linked-worktree
+  results reflect its distinct HEAD and uncommitted content, not the main checkout.
+- Reuse Phase 4's independent Windows Git/`wslpath` identity oracles, baseline timing, and fsmonitor
+  positive/negative controls. Capture source, metadata, configuration, and cache/sidecar snapshots
+  after fixture/staging setup; analysis must introduce no undeclared delta. Cleanup is limited to
+  the explicitly created fixture and staging paths.
+- **`.paw/work/ripwire-wsl-toolkit/CodeResearch.md`**: Record reproducible commands, pinned binary
+  provenance, host/runtime versions without personal identifiers, expected versus observed
+  results, limitations, and a `Pass | Blocked | Fail` gate outcome. No fabricated pass from mocks,
+  skipped live cases, Git discovery alone, or a successful binary `--version`.
+
+### Success Criteria
+
+#### Automated Verification
+
+- [ ] Explicit `pwsh -NoProfile -File .\Tests\Ripwire-Wsl-Toolkit.Tests.ps1 -Mode Feasibility`
+  with disposable paths and approved staging inputs completes all live cases; default test modes
+  never select Feasibility or invoke live WSL.
+- [ ] Standalone and linked-worktree root/Git metadata match independent oracles; stamped Ripwire
+  output matches the linked worktree's own HEAD and dirty state, and analysis finds its uncommitted
+  symbol/caller content. Results cannot also pass by reading the main checkout.
+- [ ] Real Windows-to-WSL transport preserves exact argument boundaries, imported Git override
+  order, and byte-identical parent environment. Malformed inherited blocks fail before WSL starts.
+- [ ] Both output streams preserve UTF-8, invalid bytes, CRLF, empty output, and no final newline;
+  concurrent output larger than pipe capacity finishes within a timeout, including partial output
+  followed by a chosen non-zero exit whose code propagates exactly.
+- [ ] Fsmonitor sentinel fires in the positive control but not under the final override; analysis
+  leaves source, Git metadata/configuration, and monitored cache/sidecar paths unchanged.
+
+#### Manual Verification and Go/No-Go
+
+- [ ] Present observed evidence and supported host scope to the user before starting Phase 1.
+  Passing this gate reduces architectural uncertainty; it does not establish all option,
+  architecture, installer, or production-launcher behavior.
+- [ ] Fix reproducible probe/transport defects within this bounded scope and rerun affected cases.
+  If core worktree identity, dirty-file analysis, or faithful transport requires upstream changes
+  or relaxing the same-worktree contract, mark **Fail** and stop the toolkit implementation.
+- [ ] Optional-command limitations require an explicit user-approved scope revision; do not count
+  a reduced feature set as a pass against the current spec. Never substitute a main checkout,
+  second clone, rewritten `.git`, or loss of dirty-worktree correctness.
+- [ ] Missing runtime/access/staging permission is **Blocked** with remediation, not a failed
+  compatibility finding. Neither Blocked nor Fail permits downstream implementation.
+
+---
+
 ## Phase 1: Package Contracts and Deterministic Core
 
 ### Changes Required
 
+- Begin only after Phase 0 passes and the user accepts the go/no-go evidence. Move the proven
+  transport components into the planned shared helpers/bootstrap as appropriate; retain independent
+  probe oracles and regression fixtures rather than maintaining two production implementations.
 - **`plugins/devtools/skills/ripwire-wsl/SKILL.md`**: Add a model-invoked skill with triggers for
   Windows-session Ripwire analysis. Keep the agent path short: confirm the current worktree, invoke
   the bundled launcher, keep mutations and verification on Windows, and surface unsupported states.
@@ -264,6 +347,8 @@ No optional candidates are approved for V1. MCP support requires a new specifica
 
 ### Changes Required
 
+- Rerun Phase 0's live cases through the finished launcher and doctor, not just the feasibility
+  runner. This is full integration/regression coverage, not the first architectural viability test.
 - **`Tests/Ripwire-Wsl-Toolkit.Tests.ps1`**: Add an explicit `-Mode Integration` path that creates a
   temporary Windows repository plus a Windows-created linked worktree containing spaces and Unicode.
   Integration never uses the operator's normal installation. It requires disposable
@@ -370,13 +455,17 @@ No optional candidates are approved for V1. MCP support requires a new specifica
 
 ## Fleet Coordination
 
+Phase 0 is the first blocking dependency. No Phase 1-5 worker starts before its evidence is accepted;
+installer/doctor and full launcher development must not run speculatively alongside feasibility.
+
 Implementation can use at most two bounded workers when phases expose independent surfaces:
 
 - Package instructions/references/evals can proceed in parallel with deterministic test-harness
   scaffolding after Phase 1 contracts are fixed.
 - Installer/doctor implementation and launcher implementation remain separate work items but both
   depend on the Phase 1 common contracts.
-- Live integration depends on completed installer, doctor, and launcher work.
+- Phase 4 full integration depends on completed installer, doctor, and launcher work; Phase 0
+  feasibility deliberately does not.
 - The coordinating agent integrates all work and independently accepts each checkpoint.
 
 ## Planning Review Gate
@@ -390,28 +479,35 @@ Before implementation, run independent reviews of `WorkflowContext.md`, `WorkSha
 
 Review for feasibility, specification coverage, fixture/oracle quality, scope control, and type/state
 model gaps. Synthesize findings, revise artifacts for confirmed issues, and present the final plan
-for human approval. Approval authorizes implementation planning only; real WSL installation and
-other host-affecting validation still require the explicit phase gate described above.
+for human approval. Approval to revise this plan is not execution approval. Explicit Phase 0
+approval authorizes only the bounded feasibility work; real download/WSL staging additionally
+requires the capabilities and permission described above. Present its outcome for acceptance
+before Phase 1. Final review and PR gates remain unchanged.
+
+The prior two-cycle review covered the earlier sequence. This user-directed revision adds a
+blocking feasibility gate; it does not claim those reviewers reviewed this revised sequence.
 
 ## Acceptance Coverage Matrix
 
 | Obligation | Phase | Fixture/action | Oracle | Failure control |
 |---|---:|---|---|---|
-| SC-001 root/commit/dirty | 4 | Disposable standalone and linked worktree; doctor JSON plus stamped `--for` | Canonical path equality; 9-char Windows HEAD with dirty/shallow suffix | Fail if stamp absent or bootstrap diagnostic lacks Git fields |
-| SC-002 non-mutation | 3-4 | Snapshot target, Git config, toolkit config/prefix, caches, primary repo | Exact before/after set and byte comparison excluding declared setup paths | Fail on any undeclared delta |
-| SC-003 args/streams/exit | 3 | Executable shim emits binary fixtures, over-pipe-capacity concurrent output, and chosen exit codes | Exact argv records and byte-array equality | Assert one child start, bounded completion, and exact exit |
-| SC-004 Git overrides | 1,3-4 | Empty, populated, malformed, duplicate, extra-index, Unicode WSLENV/GIT blocks plus fsmonitor positive/negative control arms | Ordered child diagnostic entries; parent bytes unchanged; sentinel fires only without override | WSL not started for malformed state or failed positive control |
+| SC-001 root/commit/dirty | 0,4 | Disposable roots with distinct HEADs; live probe then finished toolkit; stamped `--for` | Canonical path equality; 9-char Windows HEAD with dirty/shallow suffix and uncommitted content | Fail if stamp absent, main checkout substituted, or diagnostic lacks Git fields |
+| SC-002 non-mutation | 0,3-4 | Snapshot target, Git config, toolkit config/prefix, caches, primary repo | Exact before/after set and byte comparison excluding declared setup paths | Fail on any undeclared delta |
+| SC-003 args/streams/exit | 0,3-4 | Real WSL/Bash byte probe first; deterministic shims and finished-toolkit rerun; over-pipe-capacity output | Exact argv records and byte-array equality | Assert one child start, bounded completion, and exact exit |
+| SC-004 Git overrides | 0-1,3-4 | Empty, populated, malformed, duplicate, extra-index, Unicode WSLENV/GIT blocks plus fsmonitor positive/negative control arms | Ordered child diagnostic entries; parent bytes unchanged; sentinel fires only without override | WSL not started for malformed state or failed positive control |
 | SC-005 install outcomes | 2 | Clean, repeated, stale, bad hash, unsupported arch/runtime, partial install, every same-filesystem rename failure | Transaction state, command log, binary/config snapshots | No commit before staged health; rollback after later failure; ARM64 qualified by staged health |
 | SC-006 doctor | 2 | One fixture per Windows/WSL/Linux/config/install/worktree layer | Stable diagnostic code/status/remediation JSON | Zero writes and exact probe count |
 | SC-007 portability/policy | 1,5 | Package scan and option-policy fixtures | No machine identities; CLI-only/single-root text; closed allowlist | Reject unknown/write/control options |
-| SC-008 runner compatibility | 1-5 | Default deterministic mode; explicit Integration | Expected mode list and exit 0 | Default never invokes live WSL; 5.1 runtime exits before effects |
+| SC-008 runner compatibility | 0-5 | Default deterministic mode; explicit Feasibility and Integration | Expected mode list and exit 0 | Default never invokes live WSL; 5.1 runtime exits before effects |
 | SC-009 plugin discovery | 5 | Staged package manifest/frontmatter validation | Skill resolves from package path/version under test | No user Copilot config access |
 | SC-010 analysis boundary | 1,3 | Exact Spec option table; every other known/unknown flag and non-flag token | Invocation variant and stable rejection code; zero WSL starts; injected `--no-cache` | Target, cache paths, and parent environment snapshots unchanged |
 | SC-011 transaction | 2 | Every pre/post-swap failure point | Prior bytes/mode/config preserved or restored | Inject one failure at each state transition |
 
 The deterministic test script defaults to `AllDeterministic` and runs Unit, Setup, Launcher,
-manifest, and package checks. `Integration` is opt-in and additionally requires disposable
-`-ConfigPath` and Linux install prefix values.
+manifest, and package checks as they are implemented. `Feasibility` and `Integration` are opt-in,
+never included by the default mode, and require disposable Linux staging/install paths.
+`Integration` additionally requires a disposable `-ConfigPath`. Neither live mode may download or
+stage a binary without the separate approval and capability flags described in its phase.
 
 ## References
 
