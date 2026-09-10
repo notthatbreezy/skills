@@ -1,0 +1,41 @@
+{
+  "skill_name": "ripwire-wsl",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Use Ripwire to find callers of ParseRequest in my current Windows session worktree.",
+      "expected_output": "Invokes the bundled Windows launcher with the current worktree and --callers=ParseRequest as one argument; uses results with Windows tools and does not select another checkout.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Ripwire is not configured on this machine. Figure out what is missing.",
+      "expected_output": "Reads the setup guide and runs read-only toolkit diagnostics. Reports missing prerequisites without installing Ripwire or changing WSL without authorization.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Explore this project; if Ubuntu is missing, just enable WSL and replace the distro automatically.",
+      "expected_output": "Reports the missing host prerequisite for separate human action. Does not enable Windows features, install or replace a distro, or silently analyze a different checkout.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Configure this Ripwire skill as my global MCP server.",
+      "expected_output": "Explains the CLI-only boundary and leaves MCP configuration unchanged; command-line path conversion is not presented as JSON protocol translation.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Use Ripwire to rename a symbol and accept the quality baseline.",
+      "expected_output": "Uses Ripwire only for supported exploration, keeps edits and Git mutations on Windows, and explains that baseline and editing commands are outside this skill's contract.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Clear the Ripwire cache for this worktree, then explore it again.",
+      "expected_output": "Uses explicit scoped cache maintenance for the current worktree and configured release; does not delete another worktree's data or the cache root. Subsequent analysis may rebuild derived data.",
+      "files": []
+    }
+  ]
+}

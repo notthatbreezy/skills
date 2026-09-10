@@ -1,0 +1,224 @@
+# Ripwire through WSL
+
+This toolkit runs pinned Linux Ripwire against the same files used by a Windows coding session.
+It does not clone the project into Linux or port Ripwire to Windows.
+
+## Setup
+
+Runtime scripts require Windows, PowerShell 7, Windows Git, and an existing Ubuntu 20.04+
+distribution in WSL. Linux Git, Bash, GNU archive/core utilities, and `flock` must be available.
+Missing host prerequisites require separate human action. The installer does not enable Windows
+features, install or replace distributions, or activate upstream hooks/skills.
+
+Run from the installed skill directory, substituting the name of an existing Ubuntu distribution:
+
+```powershell
+pwsh -NoProfile -File .\scripts\Install-RipwireWsl.ps1 -Distribution '<installed-Ubuntu-name>'
+pwsh -NoProfile -File .\scripts\Test-RipwireWsl.ps1 -WorktreePath '<current-Windows-worktree>' -Json
+```
+
+The release identity, archive hashes, architecture aliases, and option policy are authoritative in
+[`release.json`](release.json). The pin is Ripwire v0.5.0; only the executable is extracted from the
+verified upstream archive. Upstream bundled agent assets are not installed. x86-64 feasibility was
+demonstrated on Ubuntu 26.04 / WSL 2. The upstream x86-64 baseline is Ubuntu 20.04+; an ARM64 asset
+is available but a successful staged health probe is required on that host. Do not infer broader
+compatibility from one host's result.
+
+Configuration defaults to `%LOCALAPPDATA%\brownch-devtools\ripwire-wsl\config.json`.
+`-ConfigPath` selects a separate machine-local configuration for all public scripts.
+The versioned configuration records the distro, normalized architecture, release/commit/archive
+identity, Linux binary path, and cache root. Keep it outside source control. A stale configuration
+requires explicit setup; analysis never updates it automatically.
+
+Configuration is an operator-trusted choice of executable, including when using `-ConfigPath`.
+Use configuration from a trusted setup, not a file supplied by an untrusted repository or response.
+The archive checksum verifies the download during installation; matching configuration fields do
+not authenticate the file currently at `binaryPath`. Doctor's version probe executes that file and
+reports health, not authenticity. Analysis does not add a separate executable-authentication gate.
+
+`Test-RipwireWsl.ps1 -Json` emits `schemaVersion: 1`, overall `status`, named `checks`, and
+`details`. Each check has `layer`, stable `code`, `status` (`Ready`, `Warning`, `Failed`, or
+`Skipped`), `message`, and `remediation`. Failed prerequisites stop dependent probes rather than
+inventing readiness. Exit 1 means a failed diagnostic; a first-use cache warning exits 0.
+The `binaryDigest` check is skipped because the manifest declares an archive hash, not a digest
+of the extracted executable. With `-WorktreePath`, details include the translated root and Git
+directories, namespace/lock location, and the preserved Git overrides followed by the safety entry.
+Override values may contain caller-provided information; do not publish the report unredacted.
+
+Worktree/cache diagnosis is read-only and lock-free, not an atomic snapshot. Concurrent analysis or
+clear can remove an entry during inspection: the public JSON remains a structured `Failed` report,
+but its inner worktree/cache details may be unavailable. Retry after the active operation finishes.
+If failure persists, investigate the reported condition; a retry is not permission to ignore
+unsafe ownership, permissions, links, or other I/O failures.
+
+`-LinuxInstallRoot` and `-LinuxCacheRoot` provide separate native-Linux setup locations for
+isolated installations. Default binary storage is below
+`$HOME/.local/share/brownch-devtools/ripwire-wsl`; cache storage is below
+`$HOME/.cache/brownch-devtools/ripwire-wsl`. Cache data is not part of the binary transaction.
+Installation validates staging before replacement, verifies the installed executable before
+committing configuration, and reports rollback or cleanup failures separately.
+
+Run setup sequentially for a shared `ConfigPath`, even when using different distributions or
+Linux install roots. Concurrent setup against one configuration is unsupported: the install-root
+locks do not protect that shared Windows file, and a failing install can restore its backup over
+another install's successful configuration. There is no additional configuration-path lock in V1.
+
+### Interrupted installation
+
+Rollback handles command failures while the installer is running; it is not crash recovery.
+Process termination, WSL shutdown, or a host restart during replacement can leave the binary or
+configuration missing, only partly replaced, or accompanied by staging/backup files. A subsequent
+setup run uses a new transaction ID and does not detect or reconcile the earlier transaction.
+
+After an interrupted setup, pause analysis and preserve the remaining files for manual inspection.
+Binary artifacts are siblings named `.ripwire.stage.<id>`, `.ripwire.backup.<id>`, or
+`.ripwire.failed.<id>`; configuration artifacts are `.<config-filename>.stage.<id>` and
+`.<config-filename>.backup.<id>` beside the selected configuration. Keep the distribution,
+installation root, and configuration path associated with that attempt. A filename alone does not
+prove that a backup is the correct version to restore. Resolve the exact installation state before
+retrying; broad cleanup of backups is not a recovery procedure. Run the toolkit doctor against the
+selected configuration before resuming analysis. V1 provides neither automatic recovery nor a
+dedicated recovery command.
+
+## Analysis
+
+From a PowerShell 7 session, invoke the script by its installed path:
+
+```powershell
+& '<skill-directory>\scripts\Invoke-RipwireWsl.ps1' -WorktreePath $PWD.Path
+& '<skill-directory>\scripts\Invoke-RipwireWsl.ps1' -WorktreePath $PWD.Path `
+    -RipwireArguments @('--for=SymbolName', '--max-tokens=2000')
+```
+
+`-WorktreePath` is required. The launcher supplies the only Ripwire positional root; arguments are
+an array, not a shell command string. Value-bearing options use attached `--name=value` syntax.
+Choose at most one primary selector. The complete accepted selector/modifier grammar lives in
+[`release.json`](release.json); unknown flags fail before WSL starts.
+
+For task context, combine `--for=...` with either `--detail=1` for bodies or
+`--signatures-only` for signatures, not both. `--adaptive` also needs `--for` in V1.
+Use `--top-k` to bound the default ranked map; some report selectors reject it, and
+`--for` warns that it is ignored. The manifest also enforces the pinned CLI's
+conditional modifier rules before WSL starts.
+`--json` requires a JSON-capable selector and cannot be combined with positive detail.
+
+The V1 contract focuses on orientation, symbol relationships, targeted context, and change
+exploration. Extra quality/architecture commands and baseline workflows are not qualified. Rejected
+commands are not necessarily mutating: rejection also means their behavior is outside this release's
+supported contract. Raw pass-through, MCP/listen, output destinations, and caller-chosen cache paths
+are deliberately unavailable.
+
+Ripwire stdout and stderr are forwarded as bytes, with the child exit code preserved. Toolkit errors
+go to stderr. Invocation rejection codes are 64 (additional root), 65 (mutation), 66 (MCP),
+67 (output), 68 (unknown), and 69 (invalid syntax). Windows PowerShell 5.1 rejects runtime entrypoints
+with `RIPWIRE_WSL_UNSUPPORTED_RUNTIME`, exit 78, before probing or changing anything.
+
+Upstream `--doctor` is an analysis selector, not the read-only toolkit setup doctor. It may return
+exit 1 with a `binary-path` warning because the toolkit invokes an explicit binary without adding
+it to Linux PATH. That warning does not invalidate toolkit configuration; use `Test-RipwireWsl.ps1`
+for setup readiness. Do not change shell startup files merely to silence upstream's PATH advice.
+
+## Paths and scope
+
+Repository-relative result paths refer to the supplied Windows worktree. A Linux absolute result
+path under the reported Linux root maps to the same relative suffix under the Windows root; use that
+Windows path for edits and tools. Do not globally replace `/mnt/c` or assume every result belongs to
+the root. Treat paths outside the reported root as unsupported for this single-worktree invocation.
+
+Only known path fields are translated. `--from-trace=<windows-path>` is the sole caller-supplied
+path option; symbol text, regular expressions, and path-like query text remain unchanged. Command-line
+conversion does not translate paths inside a future MCP protocol.
+
+Windows Git resolves linked-worktree metadata. The child receives translated process-local Git
+paths and a final `core.fsmonitor=false` override, preserving valid inherited overrides without
+rewriting `.git` or configuration. It also appends `diff.autoRefreshIndex=false`: Git diff can
+otherwise rewrite cached file-stat information in the index, even with optional locks disabled.
+This scopes Git calls to one worktree: it is not a general adapter
+for arbitrary other repositories opened inside the same process. Upstream raw `.git` readers can
+bypass Git environment variables; do not claim every upstream feature is compatible.
+
+## Cache retention and maintenance
+
+Source-index and Git-history caches persist inside private Linux storage, separately for each
+release, architecture, and worktree identity. A commit change keeps that namespace; current source
+and HEAD still determine the result. Repeated processes can reuse parsed source. Missing or corrupt
+cache entries are disposable and rebuildable; caches are not architecture or quality baselines.
+
+Caches can contain source and repository-history information. There is no automatic expiry or disk
+quota in V1. The read-only toolkit doctor reports cache location, readiness, and usage; a missing
+namespace is a first-use state, not an instruction to create it during diagnosis.
+
+Explicitly clear one worktree's configured release/architecture cache:
+
+```powershell
+& '<skill-directory>\scripts\Clear-RipwireWslCache.ps1' -WorktreePath '<current-Windows-worktree>'
+```
+
+Clear and analysis coordinate exclusive access to that namespace with a bounded wait; other
+worktrees have independent namespaces. Invalid ownership, escaped links, Windows-mounted storage,
+overlap with target/Git/binary paths, and lock failures are errors, not reasons to use a fallback
+directory. Clear does not delete the root, other namespaces, source, Git metadata, or installation.
+Clear caches before deleting or moving a worktree, or advancing the toolkit release, when you
+want to use the supported clear command. It requires the original live worktree and a configuration
+matching the packaged release. An old configuration alone is not accepted by a newer toolkit.
+Orphaned and older-release namespaces can remain on disk without a supported inventory or
+selective-clear route in the current toolkit. Their hashed IDs do not recover project names.
+V1 provides no automatic cleanup for these leftovers; any manual maintenance requires identifying
+the exact owned namespace and preserving the path, ownership, and active-operation safeguards.
+
+## Safety and troubleshooting
+
+WSL accesses Windows files directly: there is no synchronization barrier and no read-only sandbox.
+The launcher restricts commands and cache placement; regression snapshots detect unexpected writes.
+Managed cache and lock changes are the only allowed analysis writes. Windows remains responsible
+for editing, builds, tests, and Git mutations.
+
+| Symptom | Action |
+|---|---|
+| Unsupported runtime | Run the script with PowerShell 7 (`pwsh`), not Windows PowerShell |
+| Missing/stale/malformed configuration | Run toolkit diagnostics, then explicitly rerun setup with the intended distro/configuration |
+| Missing WSL, distro, Linux Git, or utilities | Have the operator satisfy that specific prerequisite; do not change host features automatically |
+| Invalid inherited Git/WSLENV entries | Correct the named malformed entry in the caller; do not silently discard the environment |
+| `RIPWIRE_WSL_UNSUPPORTED_GIT_REDIRECTION` | Remove the named variable and its `WSLENV` entry from the launch environment. Index/object/config-file and discovery redirection are unsupported; valid indexed Git overrides remain supported. The launcher leaves the parent environment unchanged. |
+| Invalid worktree or failed translation | Confirm the exact current checkout still exists; never fall back to the main checkout |
+| Cache ownership/path/lock error | Inspect the configured Linux cache and active analysis; resolve permissions or contention rather than bypassing coordination |
+| Analysis is slower on a mounted drive | Keep the same worktree for correctness; Linux-resident binary/cache reduce some overhead, not mounted-file costs |
+| Unsupported option/MCP/baseline request | Use supported exploration or separately scope the missing integration |
+
+## Public references
+
+- [Pinned release and upstream license](https://github.com/redhat-et/ripwire/tree/v0.5.0)
+- [Upstream Linux release baseline](https://github.com/redhat-et/ripwire/blob/v0.5.0/.github/workflows/release.yml)
+- [WSL commands](https://learn.microsoft.com/windows/wsl/basic-commands)
+- [WSL filesystems and environment transport](https://learn.microsoft.com/windows/wsl/filesystems)
+- [Git diff index refresh configuration](https://git-scm.com/docs/git-config#Documentation/git-config.txt-diffautoRefreshIndex)
+
+The toolkit is independently authored. The public launcher gist discussed during design had no
+declared reuse license and is not copied into this package.
+
+## Maintainer verification
+
+From the repository root, `pwsh -NoProfile -File .\Tests\Ripwire-Wsl-Toolkit.Tests.ps1`
+runs deterministic package, setup, diagnostic, and native-launcher fixtures without live WSL or
+network access. `-Mode Unit`, `-Mode Setup`, and `-Mode Launcher` select narrower groups.
+Windows PowerShell 5.1 supports `-Mode Unit` for static/package discovery only.
+The native launcher fixture uses the Windows .NET Framework C# compiler to build a temporary
+`wsl.exe` shim; a missing compiler is reported rather than replaced with a function-only mock.
+
+For real Bash transaction and cache failure coverage without downloading Ripwire, run
+`pwsh -NoProfile -File .\Tests\Ripwire-Wsl.Transaction.Tests.ps1 -Distribution <installed-Ubuntu-name>`
+and `pwsh -NoProfile -File .\Tests\Ripwire-Wsl.Bootstrap.Tests.ps1 -Distribution <installed-Ubuntu-name>`.
+Both use disposable fixtures rather than the operator's installation.
+
+Live modes are opt-in. `-Mode Feasibility` exercises the lower-level probe; `-Mode Integration`
+uses public setup, doctor, launcher, and clear scripts against disposable repositories.
+Run Integration without concurrent repository edits or test fixtures; it snapshots this workspace
+to detect unintended changes.
+Integration requires an existing `-Distribution`, an absolute disposable `-ConfigPath`,
+`-LinuxInstallRoot /tmp/ripwire-integration.<32-lowercase-hex>`, and a separate
+`-LinuxCacheRoot /tmp/ripwire-cache-feasibility.<32-lowercase-hex>`.
+Pass both `-AllowDownload -AllowInstall` only after authorization; otherwise supply an already
+staged test configuration/binary matching those paths. Test-only Python is needed for independent
+Linux filesystem/argument observations; the production toolkit does not require it.
+Local JSON reports can contain fixture paths and inherited Git override values; keep them out of
+version control.
