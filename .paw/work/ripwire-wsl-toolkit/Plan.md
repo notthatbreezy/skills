@@ -110,7 +110,7 @@ Git-backed queries, argument fidelity, failure propagation, and target non-mutat
   manifest, configuration/cache model, and pure validation/conversion helpers with self-tests.
 - [ ] **Phase 2: Installer and doctor** - Implement repeatable pinned installation and read-only
   diagnostics and scoped cache maintenance with mocked contract coverage.
-- [ ] **Phase 3: Worktree-aware launcher** - Implement Windows Git discovery, WSL translation,
+- [x] **Phase 3: Worktree-aware launcher** - Implement Windows Git discovery, WSL translation,
   environment preservation, stream fidelity, and exit propagation.
 - [ ] **Phase 4: Isolated live integration** - Prove real WSL/Ripwire behavior against disposable
   standalone and linked-worktree fixtures through the finished toolkit, reusing Phase 0 coverage.
@@ -382,6 +382,19 @@ public launcher is claimed complete by this phase.
 
 ## Phase 3: Worktree-Aware Launcher
 
+### Execution Status
+
+Completed in parallel with Phase 2 after the shared Phase 1 contracts, matching the independent
+setup/launcher todo dependencies. The public wrapper uses common configuration/context validation
+and raw streaming. Ten deterministic groups exercise real Windows Git fixtures and a compiled
+native WSL -> fake bootstrap -> fake Ripwire chain, including exact endpoint arguments, preserved
+overrides plus final fsmonitor suppression, raw concurrent streams, failure codes, translation
+failures, and namespace identity. Separate opt-in tests exercise the real Linux bootstrap.
+
+Phase review initially identified that the native shim stopped at the WSL boundary; the fixture
+now reaches the fake Ripwire endpoint. This remains transport-contract evidence, not a substitute
+for Phase 4's real Ripwire run through the finished toolkit.
+
 ### Changes Required
 
 - **`plugins/devtools/skills/ripwire-wsl/scripts/Invoke-RipwireWsl.ps1`**: Require
@@ -408,30 +421,30 @@ public launcher is claimed complete by this phase.
 
 #### Automated Verification
 
-- [ ] `pwsh -NoProfile -File .\Tests\Ripwire-Wsl-Toolkit.Tests.ps1 -Mode Launcher`
-- [ ] Standalone and linked-worktree fixtures produce exact resolved launch contexts without
+- [x] `pwsh -NoProfile -File .\Tests\Ripwire-Wsl-Toolkit.Tests.ps1 -Mode Launcher`
+- [x] Standalone and linked-worktree fixtures produce exact resolved launch contexts without
   changing `.git`, local config, or global config.
-- [ ] Invalid directories, deleted worktrees, mismatched roots, and failed path translation stop
+- [x] Invalid directories, deleted worktrees, mismatched roots, and failed path translation stop
   before Ripwire starts.
-- [ ] Alternate roots, unknown options, MCP/listen, edit, baseline, caller-directed cache/index/output, and every
+- [x] Alternate roots, unknown options, MCP/listen, edit, baseline, caller-directed cache/index/output, and every
   excluded pinned option stop before `wsl.exe` starts with a stable error code.
-- [ ] Empty, quoted, spaced, Unicode, backslash, equals-sign, and path-like non-path arguments reach
+- [x] Empty, quoted, spaced, Unicode, backslash, equals-sign, and path-like non-path arguments reach
   the fake child with exact boundaries.
-- [ ] Empty output, UTF-8, CRLF, no-final-newline, invalid byte sequences, and partial output before
+- [x] Empty output, UTF-8, CRLF, no-final-newline, invalid byte sequences, and partial output before
   non-zero exit are copied byte-for-byte; launcher diagnostics are on stderr; exit codes are
   unchanged.
-- [ ] Independent asynchronous pumps drain stdout and stderr concurrently and are both awaited.
+- [x] Independent asynchronous pumps drain stdout and stderr concurrently and are both awaited.
   A bounded-time shim writes more than pipe capacity to both streams and proves no deadlock.
-- [ ] The child receives existing valid Git override entries followed by
+- [x] The child receives existing valid Git override entries followed by
   `core.fsmonitor=false`; the parent environment remains unchanged.
-- [ ] Repeated calls select the same managed namespace and different worktrees select different
+- [x] Repeated calls select the same managed namespace and different worktrees select different
   ones; neither `--no-cache` nor arbitrary output paths are injected. Cache path/permission/lock
   failures stop explicitly, with no fallback into the target or shared default directories.
 
 #### Manual Verification
 
-- [ ] Agent-facing usage requires only the current worktree and analysis arguments.
-- [ ] No fallback or search logic can select the main checkout.
+- [x] Agent-facing usage requires only the current worktree and analysis arguments.
+- [x] No fallback or search logic can select the main checkout.
 
 ---
 

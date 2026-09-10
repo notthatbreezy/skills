@@ -1,5 +1,12 @@
 Set-StrictMode -Version Latest
 
+function Get-RipwireDefaultConfigPath {
+    if ([string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) {
+        throw 'RIPWIRE_WSL_CONFIG_LOCATION: LOCALAPPDATA is unavailable; specify -ConfigPath.'
+    }
+    Join-Path $env:LOCALAPPDATA 'brownch-devtools\ripwire-wsl\config.json'
+}
+
 enum RipwireManifestState {
     Valid
     Unreadable
@@ -747,7 +754,7 @@ function Invoke-RipwireNativeCommand {
 }
 
 function ConvertFrom-RipwireUtf8 {
-    param([Parameter(Mandatory)][byte[]] $Bytes)
+    param([Parameter(Mandatory)][AllowEmptyCollection()][byte[]] $Bytes)
     try {
         $encoding = [Text.UTF8Encoding]::new($false, $true)
         return New-RipwireTaggedResult Ripwire.TextResult Valid @{ Text = $encoding.GetString($Bytes) }
