@@ -183,7 +183,7 @@ cache/lock changes and retain project/Git/configuration non-mutation. This super
 zero-cache-write requirement; the live evidence below describes that earlier contract.
 
 The revised cache-enabled probe now passes all 18 feasibility groups; see the follow-up evidence
-below. Phase 0 awaits user go/no-go acceptance before production implementation. Production cache
+below. The user accepted Phase 0 and authorized remaining implementation on 2026-09-10. Production cache
 ownership/locking/maintenance, full option coverage, and other hosts remain implementation obligations.
 
 `Spec.md` still defines the exact V1 option language. This finding does not authorize removing
@@ -315,4 +315,5 @@ preserved modes, unchanged unrelated cache entries, correct output, and subseque
 This is a bounded feasibility result, not a filesystem sandbox or universal non-mutation proof.
 Snapshots cover the declared fixture and monitored locations. No production installer, public
 launcher, cache-clear interface, concurrent access coordination, ARM64 validation, or full V1
-option qualification is delivered by this probe. Phase 1 requires user acceptance of the evidence.
+option qualification is delivered by this probe. The user subsequently accepted the evidence and
+authorized Phase 1 and the remaining implementation/review work.

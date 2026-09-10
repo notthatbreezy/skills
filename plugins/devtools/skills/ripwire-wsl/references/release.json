@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "releaseVersion": "v0.5.0",
+  "releaseCommit": "bacfa3b7b3ad13648ce3892de06af05b6b55a2ac",
+  "assets": [
+    {
+      "architecture": "x64",
+      "acceptedMachineArchitectures": [
+        "x86_64",
+        "amd64"
+      ],
+      "assetName": "ripwire-0.5.0-linux-x64.tar.gz",
+      "url": "https://github.com/redhat-et/ripwire/releases/download/v0.5.0/ripwire-0.5.0-linux-x64.tar.gz",
+      "sha256": "f06e9d7e55032e8e5c397405ed72a19d6e70767d28c8c617a925de4401779f50",
+      "archiveRoot": "ripwire-0.5.0-linux-x64",
+      "payload": "ripwire-0.5.0-linux-x64/ripwire"
+    },
+    {
+      "architecture": "arm64",
+      "acceptedMachineArchitectures": [
+        "aarch64",
+        "arm64"
+      ],
+      "assetName": "ripwire-0.5.0-linux-arm64.tar.gz",
+      "url": "https://github.com/redhat-et/ripwire/releases/download/v0.5.0/ripwire-0.5.0-linux-arm64.tar.gz",
+      "sha256": "efe049b1645045e96751a51b1bc321b2d8653aa1f6ab5d7c2390eb3d49716bf0",
+      "archiveRoot": "ripwire-0.5.0-linux-arm64",
+      "payload": "ripwire-0.5.0-linux-arm64/ripwire"
+    }
+  ],
+  "options": [
+    { "name": "--for", "kind": "primary", "valueGrammar": "non-empty-text", "repeatable": false, "dependencies": [], "rejectionCategory": null },
+    { "name": "--pack-task", "kind": "primary", "valueGrammar": "non-empty-text", "repeatable": false, "dependencies": [], "rejectionCategory": null },
+    { "name": "--callers", "kind": "primary", "valueGrammar": "symbol", "repeatable": false, "dependencies": [], "rejectionCategory": null },
+    { "name": "--callees", "kind": "primary", "valueGrammar": "symbol", "repeatable": false, "dependencies": [], "rejectionCategory": null },
+    { "name": "--uses", "kind": "primary", "valueGrammar": "symbol", "repeatable": false, "dependencies": [], "rejectionCategory": null },
+    { "name": "--impact", "kind": "primary", "valueGrammar": "symbol", "repeatable": false, "dependencies": [], "rejectionCategory": null },
+    { "name": "--situ", "kind": "primary", "valueGrammar": "none", "repeatable": false, "dependencies": [], "rejectionCategory": null },
+    { "name": "--pr-context", "kind": "primary", "valueGrammar": "non-empty-text", "repeatable": false, "dependencies": [], "rejectionCategory": null },
+    { "name": "--from-trace", "kind": "primary", "valueGrammar": "windows-path", "repeatable": false, "dependencies": [], "rejectionCategory": null },
+    { "name": "--whereis", "kind": "primary", "valueGrammar": "symbol", "repeatable": false, "dependencies": [], "rejectionCategory": null },
+    { "name": "--grep", "kind": "primary", "valueGrammar": "non-empty-text", "repeatable": false, "dependencies": [], "rejectionCategory": null },
+    { "name": "--regex", "kind": "primary", "valueGrammar": "non-empty-text", "repeatable": false, "dependencies": [], "rejectionCategory": null },
+    { "name": "--expand", "kind": "primary", "valueGrammar": "symbol-list", "repeatable": false, "dependencies": [], "rejectionCategory": null },
+    { "name": "--outline", "kind": "primary", "valueGrammar": "symbol-list", "repeatable": false, "dependencies": [], "rejectionCategory": null },
+    { "name": "--doctor", "kind": "primary", "valueGrammar": "none", "repeatable": false, "dependencies": [], "rejectionCategory": null },
+    { "name": "--top-k", "kind": "numeric-modifier", "valueGrammar": "non-negative-int", "repeatable": false, "dependencies": [], "rejectionCategory": null },
+    { "name": "--max-tokens", "kind": "numeric-modifier", "valueGrammar": "positive-int", "repeatable": false, "dependencies": [], "rejectionCategory": null },
+    { "name": "--detail", "kind": "numeric-modifier", "valueGrammar": "non-negative-int", "repeatable": false, "dependencies": [], "rejectionCategory": null },
+    { "name": "--adaptive", "kind": "boolean-modifier", "valueGrammar": "none", "repeatable": false, "dependencies": [], "rejectionCategory": null },
+    { "name": "--signatures-only", "kind": "boolean-modifier", "valueGrammar": "none", "repeatable": false, "dependencies": [], "rejectionCategory": null },
+    { "name": "--json", "kind": "boolean-modifier", "valueGrammar": "none", "repeatable": false, "dependencies": [], "rejectionCategory": null },
+    { "name": "--edit", "kind": "rejected", "valueGrammar": "any", "repeatable": false, "dependencies": [], "rejectionCategory": "mutation" },
+    { "name": "--apply", "kind": "rejected", "valueGrammar": "any", "repeatable": false, "dependencies": [], "rejectionCategory": "mutation" },
+    { "name": "--baseline", "kind": "rejected", "valueGrammar": "any", "repeatable": false, "dependencies": [], "rejectionCategory": "mutation" },
+    { "name": "--update-baseline", "kind": "rejected", "valueGrammar": "any", "repeatable": false, "dependencies": [], "rejectionCategory": "mutation" },
+    { "name": "--ack", "kind": "rejected", "valueGrammar": "any", "repeatable": false, "dependencies": [], "rejectionCategory": "mutation" },
+    { "name": "--mcp", "kind": "rejected", "valueGrammar": "any", "repeatable": false, "dependencies": [], "rejectionCategory": "mcp" },
+    { "name": "--listen", "kind": "rejected", "valueGrammar": "any", "repeatable": false, "dependencies": [], "rejectionCategory": "mcp" },
+    { "name": "--host", "kind": "rejected", "valueGrammar": "any", "repeatable": false, "dependencies": [], "rejectionCategory": "mcp" },
+    { "name": "--port", "kind": "rejected", "valueGrammar": "any", "repeatable": false, "dependencies": [], "rejectionCategory": "mcp" },
+    { "name": "--cache", "kind": "rejected", "valueGrammar": "any", "repeatable": false, "dependencies": [], "rejectionCategory": "output" },
+    { "name": "--no-cache", "kind": "rejected", "valueGrammar": "any", "repeatable": false, "dependencies": [], "rejectionCategory": "output" },
+    { "name": "--index", "kind": "rejected", "valueGrammar": "any", "repeatable": false, "dependencies": [], "rejectionCategory": "output" },
+    { "name": "--output", "kind": "rejected", "valueGrammar": "any", "repeatable": false, "dependencies": [], "rejectionCategory": "output" }
+  ]
+}

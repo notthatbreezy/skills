@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('AllDeterministic', 'Feasibility')]
+    [ValidateSet('AllDeterministic', 'Unit', 'Feasibility')]
     [string] $Mode = 'AllDeterministic',
     [string] $Distribution,
     [switch] $AllowDownload,
@@ -9,6 +9,17 @@ param(
     [string] $ResultPath
 )
 
+$ErrorActionPreference = 'Stop'
+if ($Mode -in @('Unit', 'AllDeterministic')) {
+    & (Join-Path $PSScriptRoot 'Ripwire-Wsl.Static.Tests.ps1')
+    if ($PSVersionTable.PSVersion.Major -lt 7) {
+        Write-Output 'Windows PowerShell runs static/manifest checks only; runtime checks require PowerShell 7.'
+        exit 0
+    }
+    & pwsh -NoProfile -File (Join-Path $PSScriptRoot 'Ripwire-Wsl.Unit.Tests.ps1')
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    if ($Mode -eq 'Unit') { exit 0 }
+}
 if ($PSVersionTable.PSVersion.Major -lt 7) {
     [Console]::Error.WriteLine('RIPWIRE_WSL_UNSUPPORTED_RUNTIME')
     exit 78

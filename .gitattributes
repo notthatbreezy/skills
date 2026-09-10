@@ -1,1 +1,2 @@
 Tests/fixtures/ripwire-wsl/*.sh text eol=lf
+plugins/devtools/skills/ripwire-wsl/scripts/*.sh text eol=lf

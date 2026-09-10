@@ -13,7 +13,12 @@ def git(*args):
 
 
 mode = sys.argv[1]
-if mode == "context":
+if mode == "bootstrap-context":
+    print(json.dumps({"environment": {
+        name: os.environ[name]
+        for name in ("GIT_WORK_TREE", "GIT_CONFIG_VALUE_0", "TMPDIR", "XDG_CACHE_HOME")
+    }}))
+elif mode == "context":
     count = int(os.environ["GIT_CONFIG_COUNT"])
     print(json.dumps({
         "argv": sys.argv[2:],

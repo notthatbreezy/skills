@@ -104,10 +104,9 @@ Git-backed queries, argument fidelity, failure propagation, and target non-mutat
 
 ## Phase Status
 
-- [ ] **Phase 0: Live feasibility gate** - Prove core Ripwire worktree behavior and real
-  argument/environment/stream transport with managed warm-cache reuse. Technical evidence passes;
-  awaiting user go/no-go acceptance before Phase 1.
-- [ ] **Phase 1: Package contracts and deterministic core** - Add the skill package, release
+- [x] **Phase 0: Live feasibility gate** - Core worktree behavior, real transport, and managed
+  warm-cache evidence passed and were accepted by the user on 2026-09-10.
+- [x] **Phase 1: Package contracts and deterministic core** - Add the skill package, release
   manifest, configuration/cache model, and pure validation/conversion helpers with self-tests.
 - [ ] **Phase 2: Installer and doctor** - Implement repeatable pinned installation and read-only
   diagnostics and scoped cache maintenance with mocked contract coverage.
@@ -128,7 +127,7 @@ No optional candidates are approved for V1. MCP support requires a new specifica
 
 ### Execution Status
 
-**Cache-enabled rerun: Pass (2026-09-10), awaiting user go/no-go acceptance.**
+**Cache-enabled rerun: Pass; user go/no-go acceptance received (2026-09-10).**
 All 18 feasibility groups passed against pinned Ripwire v0.5.0 on the recorded Ubuntu x86-64
 host, including new-process source-cache hits, cold/warm/fresh-result equality, dirty-source
 and HEAD freshness, same-size/same-mtime edits, separate worktree namespaces, and recovery
@@ -144,8 +143,9 @@ See `CodeResearch.md`, Live Phase 0 Evidence, for reproduction and public upstre
 
 The user has approved managed persistent Linux caching and retained exploration as the V1 scope.
 This supersedes the zero-cache-delta requirement, not the historical observation. The revised
-probe enables caching and enforces the approved write boundary. Phase 1 remains gated on user
-acceptance of this evidence; production cache ownership, locking, and maintenance are still future work.
+probe enables caching and enforces the approved write boundary. The user accepted this evidence
+and authorized all remaining phases without routine phase approvals. Production cache ownership,
+locking, and maintenance are still future work.
 
 ### Changes Required
 
@@ -218,21 +218,36 @@ acceptance of this evidence; production cache ownership, locking, and maintenanc
 
 #### Manual Verification and Go/No-Go
 
-- [ ] Present observed evidence and supported host scope to the user before starting Phase 1.
+- [x] Present observed evidence and supported host scope to the user before starting Phase 1.
   Passing this gate reduces architectural uncertainty; it does not establish all option,
   architecture, installer, or production-launcher behavior.
-- [ ] Fix reproducible probe/transport defects within this bounded scope and rerun affected cases.
+- [x] Fix reproducible probe/transport defects within this bounded scope and rerun affected cases.
   If core worktree identity, dirty-file analysis, or faithful transport requires upstream changes
   or relaxing the same-worktree contract, mark **Fail** and stop the toolkit implementation.
-- [ ] Optional-command limitations require an explicit user-approved scope revision; do not count
+- [x] Optional-command limitations require an explicit user-approved scope revision; do not count
   a reduced feature set as a pass against the current spec. Never substitute a main checkout,
   second clone, rewritten `.git`, or loss of dirty-worktree correctness.
-- [ ] Missing runtime/access/staging permission is **Blocked** with remediation, not a failed
+- [x] Missing runtime/access/staging permission is **Blocked** with remediation, not a failed
   compatibility finding. Neither Blocked nor Fail permits downstream implementation.
 
 ---
 
 ## Phase 1: Package Contracts and Deterministic Core
+
+### Execution Status
+
+Completed: packaged skill/guide/evals, authoritative release policy, strict JSON/configuration
+parsing, invocation/environment/native-process helpers, and shared Linux cache bootstrap.
+PowerShell 7 deterministic tests and Windows PowerShell 5.1 static tests pass. Opt-in
+`Tests/Ripwire-Wsl.Bootstrap.Tests.ps1 -Distribution <Ubuntu-name>` exercises the real bootstrap
+with disposable Linux fixtures, including read-only diagnosis, escaped links, unsafe permissions,
+linked lock files, a simulated foreign-owner observation, and scoped clear.
+
+Implementation review found a missing-architecture case and missing cache rejection coverage;
+both were addressed. The manifest remains the single option-policy source: runtime parsing
+enforces metadata consistency and exact pinned-policy tests detect accidental grammar changes,
+rather than duplicating the entire option table inside PowerShell. No production installer or
+public launcher is claimed complete by this phase.
 
 ### Changes Required
 
@@ -275,27 +290,27 @@ acceptance of this evidence; production cache ownership, locking, and maintenanc
 
 #### Automated Verification
 
-- [ ] `pwsh -NoProfile -File .\Tests\Ripwire-Wsl-Toolkit.Tests.ps1 -Mode Unit`
-- [ ] Manifest tests reject unknown architectures, missing fields, duplicate mappings, invalid
+- [x] `pwsh -NoProfile -File .\Tests\Ripwire-Wsl-Toolkit.Tests.ps1 -Mode Unit`
+- [x] Manifest tests reject unknown architectures, missing fields, duplicate mappings, invalid
   SHA-256 values, and version/asset-name mismatches.
-- [ ] Git/WSLENV tests cover absent and empty blocks, valid populated blocks, duplicate names,
+- [x] Git/WSLENV tests cover absent and empty blocks, valid populated blocks, duplicate names,
   path/list flags, indexed variables beyond the declared count, non-numeric counts, missing indexed
   keys/values, conflicting partial blocks, Unicode values, and byte-identical parent environment.
-- [ ] Invocation tests classify every pinned option as allowed analysis or rejected control and
+- [x] Invocation tests classify every pinned option as allowed analysis or rejected control and
   reject unknown flags and all non-flag user arguments. Attached `--name=value` is the only
   value-bearing form; tests cover missing, empty, duplicate, incompatible, and repeated selectors.
-- [ ] Bootstrap bytes are LF-only, its Windows path is translated explicitly, and the WSL command
+- [x] Bootstrap bytes are LF-only, its Windows path is translated explicitly, and the WSL command
   invokes `/bin/bash` rather than relying on NTFS executable bits or a shebang.
-- [ ] Static package tests find no username, absolute checkout path, session branch, Git metadata
+- [x] Static package tests find no username, absolute checkout path, session branch, Git metadata
   path, or host MCP configuration.
-- [ ] Cache-key tests separate linked worktrees and release/architecture versions while retaining a
+- [x] Cache-key tests separate linked worktrees and release/architecture versions while retaining a
   namespace across HEAD changes. Reject unsafe ownership, escaped links, Windows-backed paths,
   and installation/target/Git overlap. Environment tests preserve parent cache settings.
 
 #### Manual Verification
 
-- [ ] `SKILL.md` uses a concise trigger pointer and discloses setup detail through `guide.md`.
-- [ ] The common module exposes closed result variants for external command and configuration
+- [x] `SKILL.md` uses a concise trigger pointer and discloses setup detail through `guide.md`.
+- [x] The common module exposes closed result variants for external command and configuration
   outcomes; no `any`-equivalent loose object or success-shaped fallback obscures failure origin.
 
 ---

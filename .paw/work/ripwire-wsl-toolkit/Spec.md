@@ -310,6 +310,7 @@ translated Linux values use `/u`, never `/p`, in the child-only `WSLENV`:
 | `GIT_CONFIG_KEY_<n>` / `GIT_CONFIG_VALUE_<n>` | Validated caller entries | `<name>/u` |
 | `RIPWIRE_BIN` | Linux absolute path from valid local config | `RIPWIRE_BIN/u` |
 | `RIPWIRE_WSL_DIAGNOSTIC` | Internal `0` or `1` | `RIPWIRE_WSL_DIAGNOSTIC/u` |
+| `RIPWIRE_WSL_OPERATION` | Internal `analysis`, `diagnostic`, or explicit maintenance `clear`; always assigned by the Windows entrypoint | `RIPWIRE_WSL_OPERATION/u` |
 | `GIT_OPTIONAL_LOCKS` | Internal `0` to avoid optional index refresh writes | `GIT_OPTIONAL_LOCKS/u` |
 | `TMPDIR` | Validated namespace temporary directory | `TMPDIR/u` |
 | `XDG_CACHE_HOME` | Validated namespace cache directory | `XDG_CACHE_HOME/u` |
