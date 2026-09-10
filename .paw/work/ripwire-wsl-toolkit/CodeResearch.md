@@ -182,10 +182,9 @@ outside the target, with V1 still focused on exploration. `Spec.md` and `Plan.md
 cache/lock changes and retain project/Git/configuration non-mutation. This supersedes the former
 zero-cache-write requirement; the live evidence below describes that earlier contract.
 
-Remaining implementation evidence: revise the probe to enable ingestion caching, retain namespaces
-between processes, demonstrate reuse and dirty/HEAD freshness, and enforce the revised write
-boundary. The existing probe still uses `--no-cache` and the old failing assertion. Phase 0 is
-pending that rerun and acceptance, not retroactively passed.
+The revised cache-enabled probe now passes all 18 feasibility groups; see the follow-up evidence
+below. Phase 0 awaits user go/no-go acceptance before production implementation. Production cache
+ownership/locking/maintenance, full option coverage, and other hosts remain implementation obligations.
 
 `Spec.md` still defines the exact V1 option language. This finding does not authorize removing
 `--for`, changing the pin, or silently broadening the launcher's accepted language.
@@ -203,8 +202,10 @@ SHA-256, not the binary's unknown build label.
 Run the deterministic probe contracts without WSL:
 `pwsh -NoProfile -File .\Tests\Ripwire-Wsl-Toolkit.Tests.ps1`.
 
-The opt-in reproduction is
-`pwsh -NoProfile -File .\Tests\Ripwire-Wsl-Toolkit.Tests.ps1 -Mode Feasibility -Distribution <installed-Ubuntu-name> -AllowDownload -AllowInstall -ResultPath <absolute-report-path>`.
+The current opt-in reproduction is
+`pwsh -NoProfile -File .\Tests\Ripwire-Wsl-Toolkit.Tests.ps1 -Mode Feasibility -Distribution <installed-Ubuntu-name> -AllowDownload -AllowInstall -LinuxCacheRoot <fresh-Linux-test-cache-root> -ResultPath <absolute-report-path>`.
+Generate the fresh Linux test cache root as
+`'/tmp/ripwire-cache-feasibility.' + [Guid]::NewGuid().ToString('N')` in PowerShell.
 Use an existing parent directory for the report. The test creates fresh disposable Windows and
 Linux fixture directories and deletes them in `finally`; JSON reports may contain those local
 paths and must not be committed. This minimal probe currently supports approved download/staging
@@ -218,7 +219,7 @@ finished public launcher. The source fixture contains `base_value`, its caller, 
 linked-worktree-only function, and an uncommitted function calling it. The main checkout and linked
 worktree have different commits, so reading the wrong checkout cannot satisfy the assertions.
 
-### Observed results
+### Original zero-cache-contract results
 
 | Obligation | Result |
 |---|---|
@@ -269,3 +270,49 @@ Additional implementation findings:
   than matching words echoed in query text or legends.
 - This evidence covers the recorded x86-64 host and commands, not ARM64, every allowed option,
   fresh-machine setup, full inherited-environment compatibility, or the eventual public launcher.
+
+### Cache-enabled follow-up: Pass
+
+The revised probe passed all 18 feasibility groups on 2026-09-10 using the same pinned release
+and recorded host. Three deterministic groups also pass without invoking live WSL. This new run
+supersedes the original gate outcome under the user-approved cache policy; it does not erase
+the original `--no-cache` finding.
+
+`cache-fixture.py` creates a new owner-private Linux-native test cache, namespaced by release,
+architecture, and a SHA-256 of canonical worktree/Git/common-directory identities. Independent
+PowerShell and Python implementations agree on the namespace key. HEAD is deliberately excluded
+from this identity. Child-only `TMPDIR` and `XDG_CACHE_HOME` point into the namespace, retained
+between Ripwire processes until test cleanup.
+
+| Obligation | Observed result |
+|---|---|
+| Actual source-cache reuse | Test-only `RIPWIRE_CACHE_STATS=1` reports `reparsed=1 reused=0` cold and `reparsed=0 reused=1` warm for both fixture roots and both lean-map/rich-query caches |
+| Output equivalence | Cold, warm, and independent empty-cache reference queries return identical stdout |
+| Dirty-source freshness | An edited uncommitted function returns its new body and reparses the source |
+| Same size and modification time | A second body edit preserving both size and mtime still reparses and returns the new body |
+| HEAD freshness | A Windows commit retains the cache namespace, reuses unchanged source, and returns the new clean commit stamp; output agrees with an empty-cache reference |
+| Missing/corrupt cache recovery | Both source and history cache families rebuild inside their namespace; output remains correct and the rebuilt source cache is reusable |
+| Worktree isolation | Queries, cache faults, and linked-worktree source/HEAD changes leave the other worktree's cache unchanged |
+| Non-mutation | Target source/Git/configuration remain unchanged during each analysis interval; staged binaries and monitored Linux home paths remain unchanged; only managed cache storage changes |
+| Cleanup | Disposable Windows fixtures/downloads, Linux binary staging, and test cache all removed; cleanup failure would make the report fail |
+
+The source-cache counters come from pinned
+[`ingest_parsepool.h`](https://github.com/redhat-et/ripwire/blob/v0.5.0/src/ingest_parsepool.h).
+They directly establish source-record reuse, not a separate history-cache hit counter. History
+cache files persist between calls; fault recovery and fresh-reference output comparisons exercise
+their correctness. The production launcher need not enable this test-only diagnostic.
+
+For the small one-file fixture, observed main-checkout map times were 558 ms cold / 330 ms warm;
+rich-query times were 1271 ms / 949 ms. Linked-worktree times were 399 ms / 291 ms and
+1349 ms / 1045 ms respectively. These include process/WSL overhead and are observations, not
+a benchmark, speed guarantee, or acceptance threshold.
+
+A rebuilt source-cache blob can have a different binary hash while returning identical results
+and demonstrating warm reuse. The recovery oracle therefore permits changed bytes only for
+explicitly faulted derived files; it still requires regular rebuilt files, replaced corruption,
+preserved modes, unchanged unrelated cache entries, correct output, and subsequent reuse.
+
+This is a bounded feasibility result, not a filesystem sandbox or universal non-mutation proof.
+Snapshots cover the declared fixture and monitored locations. No production installer, public
+launcher, cache-clear interface, concurrent access coordination, ARM64 validation, or full V1
+option qualification is delivered by this probe. Phase 1 requires user acceptance of the evidence.

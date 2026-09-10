@@ -105,7 +105,8 @@ Git-backed queries, argument fidelity, failure propagation, and target non-mutat
 ## Phase Status
 
 - [ ] **Phase 0: Live feasibility gate** - Prove core Ripwire worktree behavior and real
-  argument/environment/stream transport with managed warm-cache reuse; stop for a go/no-go decision before Phase 1.
+  argument/environment/stream transport with managed warm-cache reuse. Technical evidence passes;
+  awaiting user go/no-go acceptance before Phase 1.
 - [ ] **Phase 1: Package contracts and deterministic core** - Add the skill package, release
   manifest, configuration/cache model, and pure validation/conversion helpers with self-tests.
 - [ ] **Phase 2: Installer and doctor** - Implement repeatable pinned installation and read-only
@@ -127,7 +128,14 @@ No optional candidates are approved for V1. MCP support requires a new specifica
 
 ### Execution Status
 
-**Original run failed the former zero-cache-delta contract (2026-09-10). Cache-enabled rerun pending.**
+**Cache-enabled rerun: Pass (2026-09-10), awaiting user go/no-go acceptance.**
+All 18 feasibility groups passed against pinned Ripwire v0.5.0 on the recorded Ubuntu x86-64
+host, including new-process source-cache hits, cold/warm/fresh-result equality, dirty-source
+and HEAD freshness, same-size/same-mtime edits, separate worktree namespaces, and recovery
+from missing/corrupt source and history caches. Monitored writes stayed within managed cache
+storage; cleanup succeeded. This is test-harness evidence, not a finished production launcher.
+
+**Historical result: original run failed the former zero-cache-delta contract (2026-09-10).**
 Live linked-worktree identity, dirty-source content, caller/history queries, and real WSL
 argument/environment/raw-stream/exit transport passed. Target source, Git metadata/configuration,
 and the skills workspace remained unchanged. However, `--for` creates a `ripwire-qchurn-*.bin`
@@ -135,10 +143,9 @@ history cache despite `--no-cache`, inside the probe's disposable Linux `TMPDIR`
 See `CodeResearch.md`, Live Phase 0 Evidence, for reproduction and public upstream source.
 
 The user has approved managed persistent Linux caching and retained exploration as the V1 scope.
-This supersedes the zero-cache-delta requirement, not the historical observation. The existing
-probe still contains the old assertion and `--no-cache`; revise and rerun it against the criteria
-below before marking the gate passed. No runtime code or live results are changed by this plan
-revision, and Phase 1 remains gated on accepted evidence.
+This supersedes the zero-cache-delta requirement, not the historical observation. The revised
+probe enables caching and enforces the approved write boundary. Phase 1 remains gated on user
+acceptance of this evidence; production cache ownership, locking, and maintenance are still future work.
 
 ### Changes Required
 
@@ -192,20 +199,20 @@ revision, and Phase 1 remains gated on accepted evidence.
 
 #### Automated Verification
 
-- [ ] Explicit `pwsh -NoProfile -File .\Tests\Ripwire-Wsl-Toolkit.Tests.ps1 -Mode Feasibility`
+- [x] Explicit `pwsh -NoProfile -File .\Tests\Ripwire-Wsl-Toolkit.Tests.ps1 -Mode Feasibility`
   with disposable paths and approved staging inputs completes all live cases; default test modes
   never select Feasibility or invoke live WSL.
-- [ ] Standalone and linked-worktree root/Git metadata match independent oracles; stamped Ripwire
+- [x] Standalone and linked-worktree root/Git metadata match independent oracles; stamped Ripwire
   output matches the linked worktree's own HEAD and dirty state, and analysis finds its uncommitted
   symbol/caller content. Results cannot also pass by reading the main checkout.
-- [ ] Real Windows-to-WSL transport preserves exact argument boundaries, imported Git override
+- [x] Real Windows-to-WSL transport preserves exact argument boundaries, imported Git override
   order, and byte-identical parent environment. Malformed inherited blocks fail before WSL starts.
-- [ ] Both output streams preserve UTF-8, invalid bytes, CRLF, empty output, and no final newline;
+- [x] Both output streams preserve UTF-8, invalid bytes, CRLF, empty output, and no final newline;
   concurrent output larger than pipe capacity finishes within a timeout, including partial output
   followed by a chosen non-zero exit whose code propagates exactly.
-- [ ] Fsmonitor sentinel fires in the positive control but not under the final override; analysis
+- [x] Fsmonitor sentinel fires in the positive control but not under the final override; analysis
   leaves source, Git metadata/configuration, binaries, and out-of-namespace paths unchanged.
-- [ ] Persistent source/history cache reuse across processes is observable; cached and fresh
+- [x] Persistent source/history cache reuse across processes is observable; cached and fresh
   results agree, including after dirty-source/HEAD changes. Each worktree has its own namespace.
   Test cleanup removes all disposable cache data, and failures remain explicit.
 
