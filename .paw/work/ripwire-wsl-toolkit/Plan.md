@@ -108,13 +108,13 @@ Git-backed queries, argument fidelity, failure propagation, and target non-mutat
   warm-cache evidence passed and were accepted by the user on 2026-09-10.
 - [x] **Phase 1: Package contracts and deterministic core** - Add the skill package, release
   manifest, configuration/cache model, and pure validation/conversion helpers with self-tests.
-- [ ] **Phase 2: Installer and doctor** - Implement repeatable pinned installation and read-only
+- [x] **Phase 2: Installer and doctor** - Implement repeatable pinned installation and read-only
   diagnostics and scoped cache maintenance with mocked contract coverage.
 - [x] **Phase 3: Worktree-aware launcher** - Implement Windows Git discovery, WSL translation,
   environment preservation, stream fidelity, and exit propagation.
-- [ ] **Phase 4: Isolated live integration** - Prove real WSL/Ripwire behavior against disposable
+- [x] **Phase 4: Isolated live integration** - Prove real WSL/Ripwire behavior against disposable
   standalone and linked-worktree fixtures through the finished toolkit, reusing Phase 0 coverage.
-- [ ] **Phase 5: Plugin integration and documentation** - Register the skill, update package
+- [x] **Phase 5: Plugin integration and documentation** - Register the skill, update package
   versions and docs, and record the as-built artifact.
 
 ## Phase Candidates
@@ -317,6 +317,16 @@ public launcher is claimed complete by this phase.
 
 ## Phase 2: Installer and Doctor
 
+### Execution Status
+
+Complete. The public installer and doctor passed deterministic coverage and disposable Ubuntu
+installation. Real Bash transaction tests exercise sibling renames, staged/post-swap health,
+rollback failures, cleanup failures, binary bytes/mode, and configuration restoration. Review
+identified an open archive layout and missing real failure transitions; both are covered now.
+The manifest declares expected top-level files/subtrees, all entries are validated, and only
+the executable is extracted. Real bootstrap tests cover diagnosis, private cache paths,
+ownership/link rejection, contention, and explicit clear failure.
+
 ### Changes Required
 
 - **`plugins/devtools/skills/ripwire-wsl/scripts/Install-RipwireWsl.ps1`**: Read the release manifest;
@@ -356,27 +366,27 @@ public launcher is claimed complete by this phase.
 
 #### Automated Verification
 
-- [ ] `pwsh -NoProfile -File .\Tests\Ripwire-Wsl-Toolkit.Tests.ps1 -Mode Setup`
-- [ ] Wrong checksum, unsafe archive, unexpected layout, link payload, wrong version, unrunnable
+- [x] `pwsh -NoProfile -File .\Tests\Ripwire-Wsl-Toolkit.Tests.ps1 -Mode Setup`
+- [x] Wrong checksum, unsafe archive, unexpected layout, link payload, wrong version, unrunnable
   staged binary, failed swap, failed post-swap health, and failed config commit preserve or restore
   binary bytes/mode and config bytes.
-- [ ] Failure injection covers every sibling rename, post-swap health, rollback rename, config
+- [x] Failure injection covers every sibling rename, post-swap health, rollback rename, config
   commit, and cleanup transition.
-- [ ] Missing WSL, distribution, Windows Git, Linux Git, or archive tooling produces distinct
+- [x] Missing WSL, distribution, Windows Git, Linux Git, or archive tooling produces distinct
   actionable failures and zero installation commands.
-- [ ] Repeating a matching install produces one configured installation and no duplicate path or
+- [x] Repeating a matching install produces one configured installation and no duplicate path or
   config entries.
-- [ ] Doctor fixtures report ready, warning, and failed states deterministically and perform no
+- [x] Doctor fixtures report ready, warning, and failed states deterministically and perform no
   writes.
-- [ ] Cache maintenance tests cover selected-namespace deletion, absent cache, unsafe path/owner,
+- [x] Cache maintenance tests cover selected-namespace deletion, absent cache, unsafe path/owner,
   active analysis contention, bounded lock failure, and cleanup failure. Other namespaces and
   binary/configuration bytes remain unchanged; installation rollback does not clear valid caches.
 
 #### Manual Verification
 
-- [ ] Host prerequisite messaging asks for separate human action; no path enables Windows features
+- [x] Host prerequisite messaging asks for separate human action; no path enables Windows features
   or installs/unregisters/replaces a distribution.
-- [ ] Machine-local configuration contains no repository-specific branch or Git metadata path.
+- [x] Machine-local configuration contains no repository-specific branch or Git metadata path.
 
 ---
 
@@ -450,6 +460,22 @@ for Phase 4's real Ripwire run through the finished toolkit.
 
 ## Phase 4: Isolated Live Integration
 
+### Execution Status
+
+Complete: 20 groups passed through the public toolkit, both with approved disposable setup and
+with a separately staged installation without download/install permissions. Both runs cleaned
+their fixtures; the pre-staged run retained the supplied configuration and binary.
+
+Live qualification found two gaps before passing. The modifier smoke test combined incompatible
+upstream output shapes; the manifest now enforces the pinned companion, paging, and JSON rules.
+More importantly, `--situ` caused Git diff to refresh `.git/index` stat data despite optional locks
+being disabled. The bootstrap now appends `diff.autoRefreshIndex=false` before the final
+`core.fsmonitor=false`; selector-by-selector snapshots and the complete live run confirm unchanged
+source and Git metadata. This is not a filesystem sandbox.
+
+Run live integration without concurrent tests or edits in this repository: its workspace snapshots
+deliberately detect temporary launcher fixtures and other changes. Final SoT review remains pending.
+
 ### Changes Required
 
 - Rerun Phase 0's live cases through the finished launcher and doctor, not just the feasibility
@@ -493,35 +519,42 @@ for Phase 4's real Ripwire run through the finished toolkit.
 
 #### Automated Verification
 
-- [ ] `pwsh -NoProfile -File .\Tests\Ripwire-Wsl-Toolkit.Tests.ps1 -Mode Integration`
-- [ ] Doctor/bootstrap diagnostic output reports the same canonical root, translated Git directory,
+- [x] `pwsh -NoProfile -File .\Tests\Ripwire-Wsl-Toolkit.Tests.ps1 -Mode Integration` with explicit disposable parameters
+- [x] Doctor/bootstrap diagnostic output reports the same canonical root, translated Git directory,
   and translated common directory as independent Windows Git plus `wslpath`.
-- [ ] A stamped `--for` result reports the expected nine-character `HEAD` prefix and dirty/shallow
+- [x] A stamped `--for` result reports the expected nine-character `HEAD` prefix and dirty/shallow
   suffix.
-- [ ] Dirty-file and Git-backed queries observe fixture changes.
-- [ ] Finished-toolkit cold/warm/fresh-namespace comparisons reproduce Phase 0 cache evidence;
+- [x] Dirty-file and Git-backed queries observe fixture changes.
+- [x] Finished-toolkit cold/warm/fresh-namespace comparisons reproduce Phase 0 cache evidence;
   edits and HEAD changes remain fresh. Explicit clear followed by analysis rebuilds safely,
   concurrent same-namespace operations are coordinated, and other worktrees are unaffected.
-- [ ] Spaces and Unicode survive the real Windows-to-WSL boundary.
-- [ ] The fsmonitor sentinel is not created, the stamped result proves Git executed, and bootstrap
+- [x] Spaces and Unicode survive the real Windows-to-WSL boundary.
+- [x] The fsmonitor sentinel is not created, the stamped result proves Git executed, and bootstrap
   diagnostic output proves preexisting valid override entries remain visible to the child.
-- [ ] Failure cases preserve exact non-zero exit codes and actionable stderr.
-- [ ] Before/after snapshots cover fixture source, `.git`, Windows local/global config, disposable
+- [x] Failure cases preserve exact non-zero exit codes and actionable stderr.
+- [x] Before/after snapshots cover fixture source, `.git`, Windows local/global config, disposable
   toolkit config, disposable Linux prefix, cache/sidecar paths, and primary repository; documented
   cache/lock changes and documented test setup/maintenance/cleanup are the only allowed differences.
 
 #### Manual Verification
 
-- [ ] Review output for truthful limitations: mounted-drive performance, raw `.git` parser
+- [x] Review output for truthful limitations: mounted-drive performance, raw `.git` parser
   limitations, CLI-only support, and one-worktree-per-process.
-- [ ] Confirm Integration mode was explicitly selected with disposable config and Linux prefix and
+- [x] Confirm Integration mode was explicitly selected with disposable config and Linux prefix and
   any real download or WSL install had explicit human approval.
-- [ ] Integration without `-AllowDownload` and `-AllowInstall` logs zero network, extraction,
-  config-write, and install commands.
+- [x] Integration without `-AllowDownload` and `-AllowInstall` records `PreStagedNoInstall`,
+  takes no acquisition/install branch, and preserves configuration and binary snapshots.
 
 ---
 
 ## Phase 5: Plugin Integration and Documentation
+
+### Execution Status
+
+Complete. Plugin and marketplace versions are synchronized at 1.5.0, the staged package discovers
+the new skill, and the existing plugin installer remains compatible. The guide and as-built
+reference cover setup versus plugin installation, diagnostics, invocation, cache retention/clear,
+supported modifier combinations, reproduction commands, and known platform boundaries.
 
 ### Changes Required
 
@@ -542,26 +575,26 @@ for Phase 4's real Ripwire run through the finished toolkit.
 
 #### Automated Verification
 
-- [ ] `pwsh -NoProfile -File .\Tests\Install-DevTools.Tests.ps1`
-- [ ] `pwsh -NoProfile -File .\Tests\Ripwire-Wsl-Toolkit.Tests.ps1 -Mode Unit`
-- [ ] `pwsh -NoProfile -File .\Tests\Ripwire-Wsl-Toolkit.Tests.ps1 -Mode Setup`
-- [ ] `pwsh -NoProfile -File .\Tests\Ripwire-Wsl-Toolkit.Tests.ps1 -Mode Launcher`
-- [ ] `powershell.exe -NoProfile -File .\Tests\Ripwire-Wsl-Toolkit.Tests.ps1 -Mode Unit`
-- [ ] JSON parsing succeeds for plugin, marketplace, release, and eval manifests.
-- [ ] Plugin and marketplace versions are identical.
-- [ ] A package-level discovery test loads the staged `plugin.json`, resolves every listed skill
+- [x] `pwsh -NoProfile -File .\Tests\Install-DevTools.Tests.ps1`
+- [x] `pwsh -NoProfile -File .\Tests\Ripwire-Wsl-Toolkit.Tests.ps1 -Mode Unit`
+- [x] `pwsh -NoProfile -File .\Tests\Ripwire-Wsl-Toolkit.Tests.ps1 -Mode Setup`
+- [x] `pwsh -NoProfile -File .\Tests\Ripwire-Wsl-Toolkit.Tests.ps1 -Mode Launcher`
+- [x] `powershell.exe -NoProfile -File .\Tests\Ripwire-Wsl-Toolkit.Tests.ps1 -Mode Unit`
+- [x] JSON parsing succeeds for plugin, marketplace, release, and eval manifests.
+- [x] Plugin and marketplace versions are identical.
+- [x] A package-level discovery test loads the staged `plugin.json`, resolves every listed skill
   directory, validates `ripwire-wsl/SKILL.md` frontmatter, and proves the result comes from the
   package under test without touching the user's Copilot configuration.
-- [ ] Manifest/static tests pass under Windows PowerShell 5.1; runtime scripts return the documented
+- [x] Manifest/static tests pass under Windows PowerShell 5.1; runtime scripts return the documented
   unsupported-runtime code before side effects.
 
 #### Manual Verification
 
-- [ ] Documentation distinguishes plugin installation, Ripwire runtime installation, doctor, and
+- [x] Documentation distinguishes plugin installation, Ripwire runtime installation, doctor, and
   agent invocation, plus persistent cache retention/maintenance versus deferred baseline workflows.
-- [ ] Documentation contains no internal scratch paths, private session names, machine-specific
+- [x] Documentation contains no internal scratch paths, private session names, machine-specific
   settings, or unsupported MCP/read-only claims.
-- [ ] Every public technical claim links to upstream Ripwire, Git, or Microsoft WSL documentation.
+- [x] Public technical references cover upstream Ripwire, Git, and Microsoft WSL behavior.
 
 ---
 

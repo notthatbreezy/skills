@@ -49,6 +49,12 @@ try {
     Assert-Equal 'arm64' (Resolve-RipwireArchitecture $manifest 'aarch64').Architecture 'aarch64 mapping'
     Assert-Equal 'arm64' (Resolve-RipwireArchitecture $manifest 'arm64').Architecture 'arm64 mapping'
     Assert-Equal 'Unsupported' ([string] (Resolve-RipwireArchitecture $manifest 'riscv64').State) 'Unknown architecture'
+    foreach ($asset in $manifest.assets) {
+        Assert-Equal @('ripwire', 'README.md', 'LICENSE') @($asset.archiveFiles) `
+            "Pinned archive files for $($asset.architecture)"
+        Assert-Equal @('skills', 'hooks') @($asset.archiveDirectories) `
+            "Pinned archive directories for $($asset.architecture)"
+    }
     $expectedAllowed = @('--for', '--pack-task', '--callers', '--callees', '--uses', '--impact', '--situ',
         '--pr-context', '--from-trace', '--whereis', '--grep', '--regex', '--expand', '--outline',
         '--doctor', '--top-k', '--max-tokens', '--detail', '--adaptive', '--signatures-only', '--json')
@@ -66,11 +72,44 @@ try {
         '--signatures-only' = 'boolean-modifier:none'; '--json' = 'boolean-modifier:none'
     }
     $actualOptionMetadata = [ordered] @{}
+    $expectedDependencies = @{
+        '--adaptive' = @('--for')
+        '--signatures-only' = @('--for')
+    }
     foreach ($option in $manifest.options | Where-Object kind -CNE 'rejected') {
         $actualOptionMetadata[$option.name] = "$($option.kind):$($option.valueGrammar)"
-        Assert-Equal @() @($option.dependencies) "Pinned option $($option.name) has no undeclared dependency"
+        $dependencies = if ($expectedDependencies.ContainsKey($option.name)) {
+            $expectedDependencies[$option.name]
+        } else { @() }
+        Assert-Equal @($dependencies) @($option.dependencies) "Pinned dependencies for $($option.name)"
     }
     Assert-Equal $expectedOptionMetadata $actualOptionMetadata 'Exact V1 kinds and grammars from Spec'
+    Assert-Equal @(
+        [ordered] @{
+            option = '--detail'; condition = 'positive'; requiresAny = @('--for', '--whereis')
+        },
+        [ordered] @{
+            option = '--top-k'; condition = 'zero'; requiresAny = @('--expand', '--outline')
+        }
+    ) @($manifest.compatibility.conditionalRequires) 'Pinned conditional requirements'
+    Assert-Equal @(
+        [ordered] @{
+            option = '--signatures-only'; condition = 'present'
+            excludedOption = '--detail'; excludedCondition = 'positive'
+        }
+        [ordered] @{
+            option = '--json'; condition = 'present'
+            excludedOption = '--detail'; excludedCondition = 'positive'
+        }
+    ) @($manifest.compatibility.exclusions) 'Pinned exclusions'
+    $pagingSelectors = @('--callers', '--callees', '--whereis', '--grep', '--regex', '--impact', '--uses')
+    $nonJsonSelectors = @('--uses', '--situ', '--pr-context', '--from-trace', '--whereis',
+        '--grep', '--regex', '--expand', '--outline', '--doctor')
+    Assert-Equal @(
+        [ordered] @{ option = '--top-k'; selectors = $pagingSelectors },
+        [ordered] @{ option = '--max-tokens'; selectors = $pagingSelectors }
+        [ordered] @{ option = '--json'; selectors = $nonJsonSelectors }
+    ) @($manifest.compatibility.selectorRejections) 'Pinned selector rejections'
     Assert-Equal 'MissingField' ([string] (Invoke-ManifestMutation { param($m) $m.Remove('releaseCommit') }).State) 'Missing field'
     Assert-Equal 'UnknownField' ([string] (Invoke-ManifestMutation { param($m) $m.extra = 1 }).State) 'Unknown field'
     Assert-Equal 'UnsupportedSchema' ([string] (Invoke-ManifestMutation {
@@ -101,6 +140,48 @@ try {
     Assert-Equal 'InconsistentAsset' ([string] (Invoke-ManifestMutation {
         param($m) $m.assets = @($m.assets | Where-Object architecture -CEQ 'x64')
     }).State) 'Both supported asset entries are required'
+    Assert-Equal 'MissingField' ([string] (Invoke-ManifestMutation {
+        param($m) $m.assets[0].Remove('archiveFiles')
+    }).State) 'Archive file allowlist is required'
+    Assert-Equal 'MissingField' ([string] (Invoke-ManifestMutation {
+        param($m) $m.assets[0].Remove('archiveDirectories')
+    }).State) 'Archive directory allowlist is required'
+    Assert-Equal 'InconsistentAsset' ([string] (Invoke-ManifestMutation {
+        param($m) $m.assets[0].archiveFiles = 'ripwire'
+    }).State) 'Archive files must be an array'
+    Assert-Equal 'InconsistentAsset' ([string] (Invoke-ManifestMutation {
+        param($m) $m.assets[0].archiveDirectories = 1
+    }).State) 'Archive directories must be an array'
+    Assert-Equal 'InconsistentAsset' ([string] (Invoke-ManifestMutation {
+        param($m) $m.assets[0].archiveFiles = @('ripwire', 7)
+    }).State) 'Archive file entries must be strings'
+    Assert-Equal 'InconsistentAsset' ([string] (Invoke-ManifestMutation {
+        param($m) $m.assets[0].archiveDirectories = @('skills', 7)
+    }).State) 'Archive directory entries must be strings'
+    foreach ($invalidEntry in @('', '.', '..', 'nested/file', 'nested\file', 'space name', "line`n", "tab`tname", 'name:part')) {
+        Assert-Equal 'InconsistentAsset' ([string] (Invoke-ManifestMutation {
+            param($m) $m.assets[0].archiveDirectories = @($invalidEntry)
+        }).State) "Invalid archive component '$invalidEntry'"
+    }
+    Assert-Equal 'InconsistentAsset' ([string] (Invoke-ManifestMutation {
+        param($m) $m.assets[0].archiveFiles = @('ripwire', 'ripwire')
+    }).State) 'Duplicate archive files are rejected'
+    Assert-Equal 'InconsistentAsset' ([string] (Invoke-ManifestMutation {
+        param($m) $m.assets[0].archiveDirectories = @('skills', 'skills')
+    }).State) 'Duplicate archive directories are rejected'
+    Assert-Equal 'InconsistentAsset' ([string] (Invoke-ManifestMutation {
+        param($m) $m.assets[0].archiveDirectories = @('ripwire')
+    }).State) 'A top-level name cannot be both a file and directory'
+    Assert-Equal 'InconsistentAsset' ([string] (Invoke-ManifestMutation {
+        param($m) $m.assets[0].archiveFiles = @('README.md', 'LICENSE')
+    }).State) 'Payload must be declared as an archive file'
+    Assert-Equal 'Valid' ([string] (Invoke-ManifestMutation {
+        param($m)
+        foreach ($asset in $m.assets) {
+            $asset.archiveFiles = @('ripwire')
+            $asset.archiveDirectories = @()
+        }
+    }).State) 'Binary-only archive layout is valid'
     Assert-Equal 'InconsistentAsset' ([string] (Invoke-ManifestMutation {
         param($m) $option = @($m.options | Where-Object name -CEQ '--top-k')[0]; $option.valueGrammar = 'non-empty-text'
     }).State) 'Numeric modifiers require numeric grammar'
@@ -127,6 +208,36 @@ try {
     Assert-Equal 'InconsistentAsset' ([string] (Invoke-ManifestMutation {
         param($m) $m.options[0].dependencies = 7
     }).State) 'Numeric dependency collections are rejected'
+    Assert-Equal 'MissingField' ([string] (Invoke-ManifestMutation {
+        param($m) $m.Remove('compatibility')
+    }).State) 'Compatibility table is required'
+    Assert-Equal 'UnknownField' ([string] (Invoke-ManifestMutation {
+        param($m) $m.compatibility.extra = @()
+    }).State) 'Compatibility table is closed'
+    Assert-Equal 'InconsistentAsset' ([string] (Invoke-ManifestMutation {
+        param($m) $m.compatibility.conditionalRequires = 1
+    }).State) 'Conditional requirements must be an array'
+    Assert-Equal 'UnknownField' ([string] (Invoke-ManifestMutation {
+        param($m) $m.compatibility.conditionalRequires[0].extra = 'bad'
+    }).State) 'Conditional requirement fields are closed'
+    Assert-Equal 'InconsistentAsset' ([string] (Invoke-ManifestMutation {
+        param($m) $m.compatibility.conditionalRequires[0].condition = 'present'
+    }).State) 'Conditional requirement conditions are numeric and closed'
+    Assert-Equal 'InconsistentAsset' ([string] (Invoke-ManifestMutation {
+        param($m) $m.compatibility.conditionalRequires[0].requiresAny = @('--for', '--for')
+    }).State) 'Conditional requirement alternatives are unique'
+    Assert-Equal 'UnknownField' ([string] (Invoke-ManifestMutation {
+        param($m) $m.compatibility.exclusions[0].extra = 'bad'
+    }).State) 'Exclusion fields are closed'
+    Assert-Equal 'InconsistentAsset' ([string] (Invoke-ManifestMutation {
+        param($m) $m.compatibility.exclusions[0].excludedOption = '--missing'
+    }).State) 'Exclusions name available options'
+    Assert-Equal 'UnknownField' ([string] (Invoke-ManifestMutation {
+        param($m) $m.compatibility.selectorRejections[0].extra = 'bad'
+    }).State) 'Selector rejection fields are closed'
+    Assert-Equal 'InconsistentAsset' ([string] (Invoke-ManifestMutation {
+        param($m) $m.compatibility.selectorRejections[0].selectors = @('--json')
+    }).State) 'Selector rejection targets are primary selectors'
     $duplicateManifestPath = Join-Path $testRoot 'duplicate-manifest.json'
     $duplicateManifest = [IO.File]::ReadAllText($manifestPath).Replace(
         '"schemaVersion": 1,', '"schemaVersion": 1, "schemaVersion": 1,')
@@ -193,7 +304,11 @@ try {
         '--uses' = 'symbol'; '--impact' = 'symbol'; '--pr-context' = 'main'
         '--from-trace' = 'C:\trace file.txt'; '--whereis' = 'symbol'; '--grep' = 'text'
         '--regex' = 'a.*b'; '--expand' = 'a,b'; '--outline' = 'a,b'
-        '--top-k' = '0'; '--max-tokens' = '1'; '--detail' = '0'
+        '--top-k' = '1'; '--max-tokens' = '1'; '--detail' = '0'
+    }
+    $allowedCompanions = @{
+        '--adaptive' = @('--for=thing')
+        '--signatures-only' = @('--for=thing')
     }
     foreach ($option in $manifest.options) {
         if ($option.kind -eq 'rejected') {
@@ -207,7 +322,12 @@ try {
         $token = if ($option.valueGrammar -eq 'none') { $option.name } else {
             "$($option.name)=$($allowedValues[$option.name])"
         }
-        Assert-Equal 'AllowedAnalysis' ([string] (Classify-RipwireInvocation @($token) $manifest).State) "Allowed option $token"
+        $companions = if ($allowedCompanions.ContainsKey($option.name)) {
+            $allowedCompanions[$option.name]
+        } else { @() }
+        $invocation = @($token) + @($companions)
+        Assert-Equal 'AllowedAnalysis' ([string] (Classify-RipwireInvocation $invocation $manifest).State) `
+            "Allowed option $token with required companions"
     }
     Assert-Equal 'AllowedDefaultMap' ([string] (Classify-RipwireInvocation @() $manifest).State) 'Default map'
     foreach ($case in @(
@@ -225,11 +345,54 @@ try {
         @{ Args = @('--top-k=1000000000'); State = 'AllowedAnalysis' },
         @{ Args = @('--top-k=1000000001'); State = 'InvalidSyntax' },
         @{ Args = @('--top-k=-1'); State = 'InvalidSyntax' },
+        @{ Args = @('--detail=1000000000', '--for=thing'); State = 'AllowedAnalysis' },
+        @{ Args = @('--detail=1000000001', '--for=thing'); State = 'InvalidSyntax' },
+        @{ Args = @('--detail=1'); State = 'InvalidSyntax' },
+        @{ Args = @('--detail=1', '--callers=symbol'); State = 'InvalidSyntax' },
+        @{ Args = @('--detail=1', '--for=thing'); State = 'AllowedAnalysis' },
+        @{ Args = @('--detail=1', '--for=thing', '--json'); State = 'InvalidSyntax' },
+        @{ Args = @('--detail=0', '--for=thing', '--json'); State = 'AllowedAnalysis' },
+        @{ Args = @('--signatures-only', '--for=thing', '--json'); State = 'AllowedAnalysis' },
+        @{ Args = @('--detail=1', '--whereis=symbol'); State = 'AllowedAnalysis' },
+        @{ Args = @('--adaptive'); State = 'InvalidSyntax' },
+        @{ Args = @('--adaptive', '--for=thing'); State = 'AllowedAnalysis' },
+        @{ Args = @('--signatures-only'); State = 'InvalidSyntax' },
+        @{ Args = @('--signatures-only', '--for=thing'); State = 'AllowedAnalysis' },
+        @{ Args = @('--signatures-only', '--detail=0', '--for=thing'); State = 'AllowedAnalysis' },
+        @{ Args = @('--signatures-only', '--detail=1', '--for=thing'); State = 'InvalidSyntax' },
+        @{ Args = @('--top-k=0'); State = 'InvalidSyntax' },
+        @{ Args = @('--top-k=0', '--expand=symbol'); State = 'AllowedAnalysis' },
+        @{ Args = @('--top-k=0', '--outline=symbol'); State = 'AllowedAnalysis' },
+        @{ Args = @('--top-k=0', '--for=thing'); State = 'InvalidSyntax' },
+        @{ Args = @('--top-k=1', '--pr-context=main'); State = 'AllowedAnalysis' },
+        @{ Args = @('--max-tokens=1000', '--pr-context=main'); State = 'AllowedAnalysis' },
+        @{
+            Args = @('--for=base_value', '--top-k=1', '--max-tokens=1000', '--detail=1',
+                '--adaptive', '--signatures-only', '--json')
+            State = 'InvalidSyntax'
+        },
         @{ Args = @('--for=a', '--for=b'); State = 'InvalidSyntax' },
         @{ Args = @('--for=a', '--callers=b'); State = 'InvalidSyntax' },
         @{ Args = @('--json', '--json'); State = 'InvalidSyntax' }
     )) {
         Assert-Equal $case.State ([string] (Classify-RipwireInvocation $case.Args $manifest).State) "Invocation $($case.Args -join ' ')"
+    }
+    foreach ($selector in $pagingSelectors) {
+        $selectorValue = $allowedValues[$selector]
+        $selectorToken = if ($null -eq $selectorValue) { $selector } else { "$selector=$selectorValue" }
+        foreach ($modifier in @('--top-k=1', '--max-tokens=1000')) {
+            $classified = Classify-RipwireInvocation @($selectorToken, $modifier) $manifest
+            Assert-Equal 'InvalidSyntax' ([string] $classified.State) "Paging selector $selectorToken rejects $modifier"
+            Assert-Equal 69 $classified.ExitCode "Paging selector rejection exits 69"
+        }
+        foreach ($option in $manifest.options | Where-Object kind -CEQ 'primary') {
+            $token = if ($option.valueGrammar -ceq 'none') { $option.name } else {
+                "$($option.name)=$($allowedValues[$option.name])"
+            }
+            $expected = if ($option.name -cin $nonJsonSelectors) { 'InvalidSyntax' } else { 'AllowedAnalysis' }
+            Assert-Equal $expected ([string](Classify-RipwireInvocation @($token, '--json') $manifest).State) `
+                "JSON capability for $($option.name)"
+        }
     }
     $dependencyManifest = Copy-JsonValue $manifest
     $dependentOption = @($dependencyManifest.options | Where-Object name -CEQ '--json')[0]
@@ -368,7 +531,7 @@ try {
     $poisonedEnvironment.RIPWIRE_WSL_OPERATION = 'clear'
     Assert-Equal 'Valid' ([string] (Resolve-RipwireWindowsWorktree $root git $poisonedEnvironment).State) `
         'Inherited Git identity and process-local config cannot redirect discovery'
-    $context = New-RipwireWorktreeLaunchContext $root @('--from-trace=C:\trace file.txt', '--json') `
+    $context = New-RipwireWorktreeLaunchContext $root @('--from-trace=C:\trace file.txt', '--max-tokens=1000') `
         $validConfig $manifest $bootstrapWindows $poisonedEnvironment -PathTranslator {
             param($path)
             if ($path -ceq 'C:\trace file.txt') { return '/mnt/c/trace file.txt' }
@@ -378,7 +541,7 @@ try {
     Assert-Equal '/bin/bash' $context.WslArguments[5] 'WSL uses explicit Bash'
     Assert-Equal '--' $context.WslArguments[6] 'WSL executable separator'
     Assert-Equal '--from-trace=/mnt/c/trace file.txt' $context.WslArguments[-2] 'Only trace path is translated'
-    Assert-Equal '--json' $context.WslArguments[-1] 'Non-path option remains unchanged'
+    Assert-Equal '--max-tokens=1000' $context.WslArguments[-1] 'Non-path option remains unchanged'
     Assert-Equal '0' $context.ChildEnvironment.GIT_OPTIONAL_LOCKS 'Child-only optional locks'
     Assert-Equal '0' $context.ChildEnvironment.RIPWIRE_WSL_DIAGNOSTIC 'Analysis context mode'
     Assert-Equal 'analysis' $context.Operation 'Default operation is analysis'

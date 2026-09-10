@@ -184,7 +184,8 @@ zero-cache-write requirement; the live evidence below describes that earlier con
 
 The revised cache-enabled probe now passes all 18 feasibility groups; see the follow-up evidence
 below. The user accepted Phase 0 and authorized remaining implementation on 2026-09-10. Production cache
-ownership/locking/maintenance, full option coverage, and other hosts remain implementation obligations.
+ownership/locking/maintenance and V1 option qualification are now covered by the finished-toolkit
+evidence below. Other hosts remain unqualified; final SoT review is still pending.
 
 `Spec.md` still defines the exact V1 option language. This finding does not authorize removing
 `--for`, changing the pin, or silently broadening the launcher's accepted language.
@@ -317,3 +318,47 @@ Snapshots cover the declared fixture and monitored locations. No production inst
 launcher, cache-clear interface, concurrent access coordination, ARM64 validation, or full V1
 option qualification is delivered by this probe. The user subsequently accepted the evidence and
 authorized Phase 1 and the remaining implementation/review work.
+
+## Finished-Toolkit Integration
+
+The public installer, doctor, launcher, and clear operation passed 20 integration groups on the
+recorded Windows/Ubuntu x86-64 host. A second run used a separately staged installation without
+download/install capabilities and also passed 20 groups. Both cleaned their disposable repositories
+and created cache namespaces; the pre-staged run retained the supplied binary and configuration.
+The implementation remains pinned to the same archive and source revision.
+
+The finished path reproduces cache reuse, corruption recovery, dirty/source/HEAD freshness,
+worktree isolation, argument/stream transport, and non-mutation evidence. It additionally exercises
+every V1 primary selector, valid modifier combinations, read-only doctor identity, and clear/rebuild.
+Real Bash transaction tests separately cover archive layout/type validation, executable-only
+extraction, replacement/rollback renames, and cleanup failures. Native command shims are fault
+injectors, not substitutes for the real Bash transaction under test.
+
+### Integration findings and corrections
+
+- `wslpath` accepts one path operand per invocation on the tested Ubuntu version. Setup translates
+  its five known Windows paths separately rather than trusting a batch-shaped mock.
+- The upstream CLI rejects contradictory modifiers and some report/output combinations.
+  [`cli.h`](https://github.com/redhat-et/ripwire/blob/v0.5.0/src/cli.h) defines companion and paging
+  rules; [`main.cpp`](https://github.com/redhat-et/ripwire/blob/v0.5.0/src/main.cpp) defines JSON
+  capability and output-shape guards. The manifest records these rules, and Windows rejects invalid
+  combinations before WSL starts. Smoke coverage uses separate valid combinations.
+- Upstream `--doctor` reports a failed `binary-path` check when the explicitly configured executable
+  is absent from Linux PATH. The launcher preserves that exit code; toolkit setup diagnosis is a
+  separate read-only command and does not require a shell-startup change.
+- `--situ` exposed an actual Git metadata write: Git diff refreshed cached file-stat data in the
+  Windows-created `.git/index`. `GIT_OPTIONAL_LOCKS=0` alone did not prevent it.
+  [`diff.autoRefreshIndex`](https://git-scm.com/docs/git-config#Documentation/git-config.txt-diffautoRefreshIndex)
+  defaults to true, and Git 2.53.0's
+  [`refresh_index_quietly`](https://github.com/git/git/blob/v2.53.0/builtin/diff.c)
+  does not consult the optional-lock guard. The child now receives `diff.autoRefreshIndex=false`
+  immediately before the final `core.fsmonitor=false` override. Selector-by-selector snapshots
+  and both complete integration runs pass with unchanged source and Git metadata.
+
+This last finding narrows the earlier optional-lock claim: that setting suppresses optional writes,
+not every index update. The correction uses process-local Git configuration, not metadata rewriting,
+an index copy, write-and-restore cleanup, or removal of a supported exploration command.
+
+Run Integration alone because it snapshots this repository as well as the fixtures. Concurrent
+tests that create temporary directories in this repository correctly fail that non-mutation oracle.
+Raw reports stay local because they can contain machine paths and inherited Git override values.

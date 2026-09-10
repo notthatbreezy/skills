@@ -18,6 +18,7 @@ internal static class Program
     private static readonly string[] RecordedEnvironment = {
         "LAUNCHER_PARENT_SENTINEL", "GIT_CONFIG_COUNT", "GIT_CONFIG_KEY_0",
         "GIT_CONFIG_VALUE_0", "GIT_CONFIG_KEY_1", "GIT_CONFIG_VALUE_1",
+        "GIT_CONFIG_KEY_2", "GIT_CONFIG_VALUE_2",
         "GIT_DIR", "GIT_WORK_TREE", "GIT_COMMON_DIR",
         "GIT_OPTIONAL_LOCKS", "RIPWIRE_BIN", "RIPWIRE_WSL_OPERATION",
         "RIPWIRE_WSL_DIAGNOSTIC", "TMPDIR", "XDG_CACHE_HOME", "WSLENV"
@@ -177,6 +178,9 @@ internal static class Program
                 Environment.GetEnvironmentVariable("GIT_CONFIG_VALUE_" + index) == null)
                 return 94;
         }
+        Environment.SetEnvironmentVariable("GIT_CONFIG_KEY_" + count, "diff.autoRefreshIndex");
+        Environment.SetEnvironmentVariable("GIT_CONFIG_VALUE_" + count, "false");
+        count++;
         Environment.SetEnvironmentVariable("GIT_CONFIG_KEY_" + count, "core.fsmonitor");
         Environment.SetEnvironmentVariable("GIT_CONFIG_VALUE_" + count, "false");
         Environment.SetEnvironmentVariable("GIT_CONFIG_COUNT", (count + 1).ToString());

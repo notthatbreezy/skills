@@ -12,11 +12,19 @@ is_absolute_clean_path() {
 }
 
 json_string() {
-    local value=$1
-    value=${value//\\/\\\\}
-    value=${value//\"/\\\"}
-    value=${value//$'\t'/\\t}
-    printf '"%s"' "$value"
+    local value=$1 character code i
+    printf '"'
+    for ((i=0; i<${#value}; i++)); do
+        character=${value:i:1}
+        case "$character" in
+            \\) printf '\\\\' ;;
+            \") printf '\\"' ;;
+            *)
+                printf -v code '%d' "'$character"
+                if (( code < 32 )); then printf '\\u%04x' "$code"; else printf '%s' "$character"; fi ;;
+        esac
+    done
+    printf '"'
 }
 
 [[ ${1-} == -- ]] || fail RIPWIRE_WSL_MISSING_SEPARATOR 64
@@ -64,6 +72,8 @@ case "$namespace/" in
     /mnt/*|/run/desktop/mnt/host/*) fail RIPWIRE_WSL_WINDOWS_BACKED_CACHE 70 ;;
 esac
 for forbidden in "$GIT_WORK_TREE" "$GIT_DIR" "$GIT_COMMON_DIR" "$(dirname "$RIPWIRE_BIN")"; do
+    [[ $(realpath -m -- "$forbidden") == "$forbidden" ]] ||
+        fail RIPWIRE_WSL_NONCANONICAL_BOUNDARY_PATH 70
     case "$namespace/" in "$forbidden/"* ) fail RIPWIRE_WSL_CACHE_OVERLAP 70 ;; esac
     case "$forbidden/" in "$namespace/"* ) fail RIPWIRE_WSL_CACHE_OVERLAP 70 ;; esac
 done
@@ -129,11 +139,16 @@ validate_lock
 validate_cache_entries() {
     if [[ -d $namespace ]]; then
         local unsafe_entry
-        unsafe_entry=$(find -P "$namespace" \( -type l -o ! -user "$(id -u)" -o -perm /0077 \) -print -quit)
+        unsafe_entry=$(find -P "$namespace" \( ! \( -type f -o -type d \) -o \
+            \( -type f -links +1 \) -o ! -user "$(id -u)" -o -perm /0077 \) -print -quit)
         [[ -z $unsafe_entry ]] || fail "RIPWIRE_WSL_UNSAFE_CACHE_ENTRY: $unsafe_entry" 70
     fi
 }
 
+# Git diff can refresh index stat data even when GIT_OPTIONAL_LOCKS is zero.
+export "GIT_CONFIG_KEY_$GIT_CONFIG_COUNT=diff.autoRefreshIndex"
+export "GIT_CONFIG_VALUE_$GIT_CONFIG_COUNT=false"
+export GIT_CONFIG_COUNT=$((GIT_CONFIG_COUNT + 1))
 export "GIT_CONFIG_KEY_$GIT_CONFIG_COUNT=core.fsmonitor"
 export "GIT_CONFIG_VALUE_$GIT_CONFIG_COUNT=false"
 export GIT_CONFIG_COUNT=$((GIT_CONFIG_COUNT + 1))
@@ -155,6 +170,14 @@ if [[ $RIPWIRE_WSL_DIAGNOSTIC == 1 ]]; then
     printf ',"cacheLock":'; json_string "$lock_path"
     printf ',"cacheReady":%s' "$ready"
     printf ',"gitConfigCount":%d' "$GIT_CONFIG_COUNT"
+    printf ',"gitOverrides":['
+    for ((i=0; i<GIT_CONFIG_COUNT; i++)); do
+        (( i == 0 )) || printf ','
+        key=GIT_CONFIG_KEY_$i
+        value=GIT_CONFIG_VALUE_$i
+        printf '['; json_string "${!key}"; printf ','; json_string "${!value}"; printf ']'
+    done
+    printf ']'
     printf '}\n'
     exit 0
 fi

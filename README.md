@@ -141,10 +141,16 @@ marketplace update refreshes its existing source; it does not change that source
 | `html-decision-explainers` | Skill | Builds self-contained HTML explanations for decisions whose consequences unfold across states or time. |
 | `offscreen-windows-ui-automation` | Skill | Background-safe Windows UI Automation against real application state. |
 | `stable-public-ip-sampler` | Skill | Sanitized repeated sampling of public egress IPv4 stability. |
+| `ripwire-wsl` | Skill | Pinned Linux Ripwire exploration of the current Windows worktree, with explicit setup, diagnostics, and managed caching. |
 
 The type-driven and delegation type-safety skills bundle persona instructions in skill assets.
 Copilot plugins install skills and custom agents natively; they do not write arbitrary global
 instruction files, external PAW persona directories, or machine-bound coordination archives.
+
+Ripwire runtime scripts require PowerShell 7, Windows Git, and an existing compatible Ubuntu WSL
+distribution. Plugin installation does not install Ripwire or change WSL. See the
+[Ripwire setup and usage guide](plugins/devtools/skills/ripwire-wsl/references/guide.md).
+This integration is CLI-only, not an MCP server or a read-only filesystem sandbox.
 
 ### Runtime prerequisites for custom PAW workflow assets
 
@@ -174,6 +180,10 @@ Install-DevTools.ps1             Native marketplace/plugin bootstrap
 - Keep installable assets under `plugins/devtools/`.
 - Update the version in both `plugin.json` and `marketplace.json` for releases.
 - Run `.\Tests\Install-DevTools.Tests.ps1` in PowerShell 7 and Windows PowerShell 5.1.
+- Run `pwsh -NoProfile -File .\Tests\Ripwire-Wsl-Toolkit.Tests.ps1` for deterministic toolkit coverage;
+  `-Mode Unit` also supports Windows PowerShell 5.1 static checks. Live `-Mode Integration` requires
+  an explicitly selected distro, disposable configuration/install/cache paths, and separate
+  download/install approval flags.
 - Store editable source, not ZIP exports or generated packages.
 - Use repository-relative links and paths inside plugin assets.
 - Validate PowerShell, JSON, plugin loading, skill discovery, and agent discovery before release.

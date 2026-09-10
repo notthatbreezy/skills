@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5.0
+
+- Add the `ripwire-wsl` exploration skill for Windows worktrees, with pinned/checksummed Ripwire
+  v0.5.0 setup, diagnostics, a worktree-aware launcher, persistent Linux caching and scoped clear,
+  regression fixtures, and usage guidance. Bump plugin and marketplace manifests to `1.5.0`.
+
 ## 1.4.0
 
 - Add the packaged `scope-creep-reviewer` agent for tracing planned work to approved requirements

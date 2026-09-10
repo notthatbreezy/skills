@@ -25,7 +25,8 @@ def root_path(value, *, existing=True):
 def namespace_path(root, value):
     namespace = Path(value)
     relative = namespace.relative_to(root)
-    if len(relative.parts) != 3 or not re.fullmatch(r"[0-9a-f]{64}", relative.parts[2]):
+    parts = relative.parts[1:] if relative.parts[0] == "releases" else relative.parts
+    if len(parts) != 3 or parts[0] != "v0.5.0" or parts[1] not in {"x64", "arm64"} or not re.fullmatch(r"[0-9a-f]{64}", parts[2]):
         raise ValueError("Unexpected namespace shape")
     if namespace.resolve() != namespace:
         raise ValueError("Namespace must not resolve through a link")

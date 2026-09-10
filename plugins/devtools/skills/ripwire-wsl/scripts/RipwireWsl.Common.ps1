@@ -78,6 +78,14 @@ function Test-RipwireJsonString {
     return $Value -is [string]
 }
 
+function Test-RipwireArchiveEntryName {
+    param($Value)
+    return (Test-RipwireJsonString $Value) -and
+        -not [string]::IsNullOrWhiteSpace($Value) -and
+        $Value -cne '.' -and $Value -cne '..' -and
+        $Value -cmatch '\A[A-Za-z0-9._+-]+\z'
+}
+
 function Find-RipwireDuplicateJsonProperty {
     param(
         [Parameter(Mandatory)][Text.Json.JsonElement] $Element,
@@ -175,7 +183,8 @@ function Read-RipwireReleaseManifest {
             Code = 'RIPWIRE_WSL_MANIFEST_MALFORMED_JSON'; Message = 'Manifest root must be an object.'
         }
     }
-    $top = Test-RipwireExactFields $manifest @('schemaVersion', 'releaseVersion', 'releaseCommit', 'assets', 'options') 'manifest'
+    $top = Test-RipwireExactFields $manifest @(
+        'schemaVersion', 'releaseVersion', 'releaseCommit', 'assets', 'options', 'compatibility') 'manifest'
     if ($top.State -ne 'Valid') {
         return New-RipwireTaggedResult Ripwire.ManifestParseResult ([RipwireManifestState]::$($top.State)) @{
             Code = $top.Code; Message = $top.Message
@@ -191,7 +200,8 @@ function Read-RipwireReleaseManifest {
         $manifest.releaseVersion -cnotmatch '^v[0-9]+\.[0-9]+\.[0-9]+$' -or
         $manifest.releaseCommit -cnotmatch '^[0-9a-f]{40}$' -or
         $manifest.assets -isnot [array] -or $manifest.assets.Count -eq 0 -or
-        $manifest.options -isnot [array] -or $manifest.options.Count -eq 0) {
+        $manifest.options -isnot [array] -or $manifest.options.Count -eq 0 -or
+        $manifest.compatibility -isnot [System.Collections.IDictionary]) {
         return New-RipwireTaggedResult Ripwire.ManifestParseResult ([RipwireManifestState]::MissingField) @{
             Code = 'RIPWIRE_WSL_MANIFEST_INVALID_FIELD'; Message = 'Manifest identity, assets, or options are invalid.'
         }
@@ -206,7 +216,8 @@ function Read-RipwireReleaseManifest {
             }
         }
         $check = Test-RipwireExactFields $asset @(
-            'architecture', 'acceptedMachineArchitectures', 'assetName', 'url', 'sha256', 'archiveRoot', 'payload') 'asset'
+            'architecture', 'acceptedMachineArchitectures', 'assetName', 'url', 'sha256', 'archiveRoot', 'payload',
+            'archiveFiles', 'archiveDirectories') 'asset'
         if ($check.State -ne 'Valid') {
             return New-RipwireTaggedResult Ripwire.ManifestParseResult ([RipwireManifestState]::$($check.State)) @{
                 Code = $check.Code; Message = $check.Message
@@ -220,6 +231,32 @@ function Read-RipwireReleaseManifest {
             -not (Test-RipwireJsonString $asset.payload)) {
             return New-RipwireTaggedResult Ripwire.ManifestParseResult ([RipwireManifestState]::InconsistentAsset) @{
                 Code = 'RIPWIRE_WSL_MANIFEST_INVALID_ASSET'; Message = 'Asset scalar fields must be strings.'
+            }
+        }
+        if ($asset.archiveFiles -isnot [array] -or $asset.archiveFiles.Count -eq 0 -or
+            $asset.archiveDirectories -isnot [array]) {
+            return New-RipwireTaggedResult Ripwire.ManifestParseResult ([RipwireManifestState]::InconsistentAsset) @{
+                Code = 'RIPWIRE_WSL_MANIFEST_INVALID_ARCHIVE_LAYOUT'
+                Message = "Asset '$($asset.architecture)' archive file and directory fields must be arrays."
+            }
+        }
+        $archiveEntries = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+        $archiveFiles = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+        foreach ($entry in $asset.archiveFiles) {
+            if (-not (Test-RipwireArchiveEntryName $entry) -or
+                -not $archiveEntries.Add($entry) -or -not $archiveFiles.Add($entry)) {
+                return New-RipwireTaggedResult Ripwire.ManifestParseResult ([RipwireManifestState]::InconsistentAsset) @{
+                    Code = 'RIPWIRE_WSL_MANIFEST_INVALID_ARCHIVE_LAYOUT'
+                    Message = "Asset '$($asset.architecture)' has invalid or duplicate archive file '$entry'."
+                }
+            }
+        }
+        foreach ($entry in $asset.archiveDirectories) {
+            if (-not (Test-RipwireArchiveEntryName $entry) -or -not $archiveEntries.Add($entry)) {
+                return New-RipwireTaggedResult Ripwire.ManifestParseResult ([RipwireManifestState]::InconsistentAsset) @{
+                    Code = 'RIPWIRE_WSL_MANIFEST_INVALID_ARCHIVE_LAYOUT'
+                    Message = "Asset '$($asset.architecture)' has invalid or duplicate archive directory '$entry'."
+                }
             }
         }
         if ($asset.sha256 -cnotmatch '^[0-9a-f]{64}$') {
@@ -239,6 +276,13 @@ function Read-RipwireReleaseManifest {
             $asset.url -cne "https://github.com/redhat-et/ripwire/releases/download/$($manifest.releaseVersion)/$($asset.assetName)") {
             return New-RipwireTaggedResult Ripwire.ManifestParseResult ([RipwireManifestState]::InconsistentAsset) @{
                 Code = 'RIPWIRE_WSL_MANIFEST_INCONSISTENT_ASSET'; Message = "Asset '$($asset.architecture)' is inconsistent with the release."
+            }
+        }
+        $payloadEntry = $asset.payload.Substring($asset.archiveRoot.Length + 1)
+        if (-not $archiveFiles.Contains($payloadEntry)) {
+            return New-RipwireTaggedResult Ripwire.ManifestParseResult ([RipwireManifestState]::InconsistentAsset) @{
+                Code = 'RIPWIRE_WSL_MANIFEST_INVALID_ARCHIVE_LAYOUT'
+                Message = "Asset '$($asset.architecture)' payload is not declared as an archive file."
             }
         }
         if ($asset.acceptedMachineArchitectures -isnot [array] -or $asset.acceptedMachineArchitectures.Count -eq 0) {
@@ -337,6 +381,118 @@ function Read-RipwireReleaseManifest {
                     Code = 'RIPWIRE_WSL_MANIFEST_INVALID_DEPENDENCY'
                     Message = "Option '$($option.name)' depends on unavailable option '$dependency'."
                 }
+            }
+        }
+    }
+    $compatibilityCheck = Test-RipwireExactFields $manifest.compatibility @(
+        'conditionalRequires', 'exclusions', 'selectorRejections') 'compatibility'
+    if ($compatibilityCheck.State -ne 'Valid') {
+        return New-RipwireTaggedResult Ripwire.ManifestParseResult ([RipwireManifestState]::$($compatibilityCheck.State)) @{
+            Code = $compatibilityCheck.Code; Message = $compatibilityCheck.Message
+        }
+    }
+    if ($manifest.compatibility.conditionalRequires -isnot [array] -or
+        $manifest.compatibility.exclusions -isnot [array] -or
+        $manifest.compatibility.selectorRejections -isnot [array]) {
+        return New-RipwireTaggedResult Ripwire.ManifestParseResult ([RipwireManifestState]::InconsistentAsset) @{
+            Code = 'RIPWIRE_WSL_MANIFEST_INVALID_COMPATIBILITY'
+            Message = 'Manifest compatibility rule collections must be arrays.'
+        }
+    }
+    $availableOptions = @($manifest.options | Where-Object kind -CNE 'rejected')
+    $availableNames = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    $primaryNames = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($option in $availableOptions) {
+        $null = $availableNames.Add($option.name)
+        if ($option.kind -ceq 'primary') { $null = $primaryNames.Add($option.name) }
+    }
+    foreach ($rule in $manifest.compatibility.conditionalRequires) {
+        if ($rule -isnot [System.Collections.IDictionary]) {
+            return New-RipwireTaggedResult Ripwire.ManifestParseResult ([RipwireManifestState]::InconsistentAsset) @{
+                Code = 'RIPWIRE_WSL_MANIFEST_INVALID_COMPATIBILITY'
+                Message = 'Each conditional requirement must be an object.'
+            }
+        }
+        $check = Test-RipwireExactFields $rule @('option', 'condition', 'requiresAny') 'conditional requirement'
+        if ($check.State -ne 'Valid') {
+            return New-RipwireTaggedResult Ripwire.ManifestParseResult ([RipwireManifestState]::$($check.State)) @{
+                Code = $check.Code; Message = $check.Message
+            }
+        }
+        $requiredNames = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+        $definition = @($availableOptions | Where-Object name -CEQ $rule.option)
+        if (-not (Test-RipwireJsonString $rule.option) -or
+            -not (Test-RipwireJsonString $rule.condition) -or
+            $definition.Count -ne 1 -or
+            $rule.condition -cnotin @('positive', 'zero') -or
+            $definition[0].kind -cne 'numeric-modifier' -or
+            $rule.requiresAny -isnot [array] -or $rule.requiresAny.Count -eq 0 -or
+            @($rule.requiresAny | Where-Object {
+                $_ -isnot [string] -or -not $availableNames.Contains($_) -or
+                $_ -ceq $rule.option -or -not $requiredNames.Add($_)
+            }).Count -ne 0) {
+            return New-RipwireTaggedResult Ripwire.ManifestParseResult ([RipwireManifestState]::InconsistentAsset) @{
+                Code = 'RIPWIRE_WSL_MANIFEST_INVALID_COMPATIBILITY'
+                Message = "Conditional requirement for '$($rule.option)' is invalid."
+            }
+        }
+    }
+    foreach ($rule in $manifest.compatibility.exclusions) {
+        if ($rule -isnot [System.Collections.IDictionary]) {
+            return New-RipwireTaggedResult Ripwire.ManifestParseResult ([RipwireManifestState]::InconsistentAsset) @{
+                Code = 'RIPWIRE_WSL_MANIFEST_INVALID_COMPATIBILITY'
+                Message = 'Each exclusion must be an object.'
+            }
+        }
+        $check = Test-RipwireExactFields $rule @(
+            'option', 'condition', 'excludedOption', 'excludedCondition') 'exclusion'
+        if ($check.State -ne 'Valid') {
+            return New-RipwireTaggedResult Ripwire.ManifestParseResult ([RipwireManifestState]::$($check.State)) @{
+                Code = $check.Code; Message = $check.Message
+            }
+        }
+        $definition = @($availableOptions | Where-Object name -CEQ $rule.option)
+        $excludedDefinition = @($availableOptions | Where-Object name -CEQ $rule.excludedOption)
+        if (-not (Test-RipwireJsonString $rule.option) -or
+            -not (Test-RipwireJsonString $rule.condition) -or
+            -not (Test-RipwireJsonString $rule.excludedOption) -or
+            -not (Test-RipwireJsonString $rule.excludedCondition) -or
+            $definition.Count -ne 1 -or $excludedDefinition.Count -ne 1 -or
+            $rule.option -ceq $rule.excludedOption -or
+            $rule.condition -cne 'present' -or
+            $rule.excludedCondition -cne 'positive' -or
+            $excludedDefinition[0].kind -cne 'numeric-modifier') {
+            return New-RipwireTaggedResult Ripwire.ManifestParseResult ([RipwireManifestState]::InconsistentAsset) @{
+                Code = 'RIPWIRE_WSL_MANIFEST_INVALID_COMPATIBILITY'
+                Message = "Exclusion for '$($rule.option)' is invalid."
+            }
+        }
+    }
+    foreach ($rule in $manifest.compatibility.selectorRejections) {
+        if ($rule -isnot [System.Collections.IDictionary]) {
+            return New-RipwireTaggedResult Ripwire.ManifestParseResult ([RipwireManifestState]::InconsistentAsset) @{
+                Code = 'RIPWIRE_WSL_MANIFEST_INVALID_COMPATIBILITY'
+                Message = 'Each selector rejection must be an object.'
+            }
+        }
+        $check = Test-RipwireExactFields $rule @('option', 'selectors') 'selector rejection'
+        if ($check.State -ne 'Valid') {
+            return New-RipwireTaggedResult Ripwire.ManifestParseResult ([RipwireManifestState]::$($check.State)) @{
+                Code = $check.Code; Message = $check.Message
+            }
+        }
+        $selectorNames = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+        $definition = @($availableOptions | Where-Object name -CEQ $rule.option)
+        if (-not (Test-RipwireJsonString $rule.option) -or
+            $definition.Count -ne 1 -or $definition[0].kind -ceq 'primary' -or
+            $rule.selectors -isnot [array] -or $rule.selectors.Count -eq 0 -or
+            @($rule.selectors | Where-Object {
+                $_ -isnot [string] -or -not $primaryNames.Contains($_) -or
+                -not $selectorNames.Add($_)
+            }).Count -ne 0) {
+            return New-RipwireTaggedResult Ripwire.ManifestParseResult ([RipwireManifestState]::InconsistentAsset) @{
+                Code = 'RIPWIRE_WSL_MANIFEST_INVALID_COMPATIBILITY'
+                Message = "Selector rejection for '$($rule.option)' is invalid."
             }
         }
     }
@@ -467,6 +623,25 @@ function Test-RipwireOptionValue {
     }
 }
 
+function Test-RipwireCompatibilityCondition {
+    param(
+        [Parameter(Mandatory)][string] $Condition,
+        [Parameter(Mandatory)][string] $Option,
+        [Parameter(Mandatory)][Collections.Generic.HashSet[string]] $Seen,
+        [Parameter(Mandatory)][Collections.Generic.Dictionary[string, string]] $Values
+    )
+    switch ($Condition) {
+        'present' { return $Seen.Contains($Option) }
+        'positive' {
+            [long] $number = 0
+            return $Seen.Contains($Option) -and $Values.ContainsKey($Option) -and
+                [long]::TryParse($Values[$Option], [ref] $number) -and $number -gt 0
+        }
+        'zero' { return $Seen.Contains($Option) -and $Values.ContainsKey($Option) -and $Values[$Option] -ceq '0' }
+        default { throw "RIPWIRE_WSL_INTERNAL_COMPATIBILITY_CONDITION: $Condition" }
+    }
+}
+
 function Classify-RipwireInvocation {
     [CmdletBinding()]
     param(
@@ -481,6 +656,7 @@ function Classify-RipwireInvocation {
     $table = [Collections.Generic.Dictionary[string, object]]::new([StringComparer]::Ordinal)
     foreach ($option in $Manifest.options) { $table.Add($option.name, $option) }
     $seen = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    $values = [Collections.Generic.Dictionary[string, string]]::new([StringComparer]::Ordinal)
     $primary = $null
     foreach ($argument in $Arguments) {
         if ($argument -cnotmatch '^--') {
@@ -516,6 +692,7 @@ function Classify-RipwireInvocation {
             }
         }
         $null = $seen.Add($name)
+        if ($equals -ge 0) { $values.Add($name, $value) }
         if ($definition.kind -eq 'primary') {
             if ($null -ne $primary) {
                 return New-RipwireTaggedResult Ripwire.InvocationClassification ([RipwireInvocationKind]::InvalidSyntax) @{
@@ -533,6 +710,33 @@ function Classify-RipwireInvocation {
                     Code = 'RIPWIRE_WSL_INVALID_ARGUMENT'; ExitCode = 69; Argument = $name
                     Message = "Option '$name' requires '$dependency'."
                 }
+            }
+        }
+    }
+    foreach ($rule in $Manifest.compatibility.conditionalRequires) {
+        if ((Test-RipwireCompatibilityCondition $rule.condition $rule.option $seen $values) -and
+            @($rule.requiresAny | Where-Object { $seen.Contains($_) }).Count -eq 0) {
+            return New-RipwireTaggedResult Ripwire.InvocationClassification ([RipwireInvocationKind]::InvalidSyntax) @{
+                Code = 'RIPWIRE_WSL_INVALID_ARGUMENT'; ExitCode = 69; Argument = $rule.option
+                Message = "Option '$($rule.option)' requires one of: $($rule.requiresAny -join ', ')."
+            }
+        }
+    }
+    foreach ($rule in $Manifest.compatibility.exclusions) {
+        if ((Test-RipwireCompatibilityCondition $rule.condition $rule.option $seen $values) -and
+            (Test-RipwireCompatibilityCondition $rule.excludedCondition $rule.excludedOption $seen $values)) {
+            return New-RipwireTaggedResult Ripwire.InvocationClassification ([RipwireInvocationKind]::InvalidSyntax) @{
+                Code = 'RIPWIRE_WSL_INVALID_ARGUMENT'; ExitCode = 69; Argument = $rule.option
+                Message = "Option '$($rule.option)' is incompatible with '$($rule.excludedOption)'."
+            }
+        }
+    }
+    foreach ($rule in $Manifest.compatibility.selectorRejections) {
+        if ($seen.Contains($rule.option) -and
+            @($rule.selectors | Where-Object { $seen.Contains($_) }).Count -ne 0) {
+            return New-RipwireTaggedResult Ripwire.InvocationClassification ([RipwireInvocationKind]::InvalidSyntax) @{
+                Code = 'RIPWIRE_WSL_INVALID_ARGUMENT'; ExitCode = 69; Argument = $rule.option
+                Message = "Option '$($rule.option)' is incompatible with the selected report."
             }
         }
     }

@@ -126,6 +126,13 @@ try {
         emptyLiteralRoot = @{ Arguments = @(''); Exit = 64; Code = 'RIPWIRE_WSL_REJECTED_ROOT' }
         unknown = @{ Arguments = @('--future-mode'); Exit = 68; Code = 'RIPWIRE_WSL_REJECTED_UNKNOWN' }
         invalidSyntax = @{ Arguments = @('--for='); Exit = 69; Code = 'RIPWIRE_WSL_INVALID_ARGUMENT' }
+        contradictoryBodies = @{ Arguments = @('--for=fixture', '--detail=1', '--signatures-only'); Exit = 69; Code = 'RIPWIRE_WSL_INVALID_ARGUMENT' }
+        contradictoryJson = @{ Arguments = @('--for=fixture', '--detail=1', '--json'); Exit = 69; Code = 'RIPWIRE_WSL_INVALID_ARGUMENT' }
+        unsupportedJson = @{ Arguments = @('--situ', '--json'); Exit = 69; Code = 'RIPWIRE_WSL_INVALID_ARGUMENT' }
+        missingAdaptiveSelector = @{ Arguments = @('--adaptive'); Exit = 69; Code = 'RIPWIRE_WSL_INVALID_ARGUMENT' }
+        missingSignatureSelector = @{ Arguments = @('--signatures-only'); Exit = 69; Code = 'RIPWIRE_WSL_INVALID_ARGUMENT' }
+        missingDetailSelector = @{ Arguments = @('--detail=1'); Exit = 69; Code = 'RIPWIRE_WSL_INVALID_ARGUMENT' }
+        missingPayload = @{ Arguments = @('--top-k=0'); Exit = 69; Code = 'RIPWIRE_WSL_INVALID_ARGUMENT' }
     }
     foreach ($case in $rejections.GetEnumerator()) {
         Remove-Item $countPath -Force -ErrorAction SilentlyContinue
@@ -240,15 +247,19 @@ try {
     $endpoint = Get-Content -LiteralPath $endpointRecordPath -Raw | ConvertFrom-Json
     Assert-Equal (@($linuxRoot) + $exactArguments) @($endpoint.Arguments) `
         'Fake Ripwire endpoint receives the sole root followed by exact allowed arguments'
-    Assert-Equal '2' $endpoint.Environment.GIT_CONFIG_COUNT `
-        'Fake bootstrap appends exactly one Git override'
+    Assert-Equal '3' $endpoint.Environment.GIT_CONFIG_COUNT `
+        'Fake bootstrap appends exactly two Git overrides'
     Assert-Equal 'fixture.launcher' $endpoint.Environment.GIT_CONFIG_KEY_0 `
         'Fake bootstrap preserves the original Git override key'
     Assert-Equal 'quoted Ω value\' $endpoint.Environment.GIT_CONFIG_VALUE_0 `
         'Fake bootstrap preserves the original Git override value'
-    Assert-Equal 'core.fsmonitor' $endpoint.Environment.GIT_CONFIG_KEY_1 `
-        'Fake bootstrap appends core.fsmonitor last'
+    Assert-Equal 'diff.autoRefreshIndex' $endpoint.Environment.GIT_CONFIG_KEY_1 `
+        'Fake bootstrap disables index refresh'
     Assert-Equal 'false' $endpoint.Environment.GIT_CONFIG_VALUE_1 `
+        'Fake bootstrap preserves Git index bytes'
+    Assert-Equal 'core.fsmonitor' $endpoint.Environment.GIT_CONFIG_KEY_2 `
+        'Fake bootstrap appends core.fsmonitor last'
+    Assert-Equal 'false' $endpoint.Environment.GIT_CONFIG_VALUE_2 `
         'Fake bootstrap disables fsmonitor at the final endpoint'
     Add-Pass 'native WSL-bootstrap-Ripwire chain preserves root arguments and final Git override'
 

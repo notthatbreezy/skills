@@ -1,7 +1,7 @@
 {
   "name": "brownch-devtools",
-  "description": "Personal Copilot skills and agents for moderated and custom PAW workflows, bounded delegation orchestration, type-driven reviews, offscreen Windows UI automation, public egress sampling, and self-contained HTML decision explainers.",
-  "version": "1.4.0",
+  "description": "Personal Copilot skills and agents for PAW workflows, bounded delegation, type-driven reviews, Windows UI automation, Ripwire WSL exploration, public egress sampling, and HTML decision explainers.",
+  "version": "1.5.0",
   "author": {
     "name": "notthatbreezy",
     "url": "https://github.com/notthatbreezy"
@@ -38,6 +38,7 @@
     "skills/html-decision-explainers",
     "skills/offscreen-windows-ui-automation",
     "skills/paw-moderated-local-review",
+    "skills/ripwire-wsl",
     "skills/stable-public-ip-sampler",
     "skills/type-driven-development"
   ],

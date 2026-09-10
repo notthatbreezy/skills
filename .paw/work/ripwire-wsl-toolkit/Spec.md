@@ -158,6 +158,8 @@ Acceptance Scenarios:
   `core.fsmonitor=false` override through a child-only launch contract: PowerShell transports the
   validated caller block and translated paths with `WSLENV`, and the Linux bootstrap appends the
   safety entry before Ripwire starts. The parent process remains unchanged. (Stories: P1, P4)
+  Append `diff.autoRefreshIndex=false` immediately before the final fsmonitor entry: Git's
+  porcelain diff can otherwise refresh index stat data despite `GIT_OPTIONAL_LOCKS=0`.
 - **FR-006**: Malformed inherited Git override state shall produce an actionable failure rather
   than replacement, truncation, or silent defaulting. (Stories: P3, P4)
 - **FR-007**: The launcher shall preserve argument boundaries, copy Ripwire stdout and stderr as raw
@@ -206,7 +208,8 @@ Acceptance Scenarios:
 
 - **Release Manifest**: Versioned declaration of upstream release identity, source commit, accepted
   `uname -m` values, normalized architecture, asset name/URL, archive SHA-256, expected archive root
-  and payload path, and the closed analysis-option policy. Missing, unknown, duplicate, or
+  and payload path, permitted top-level archive files/subtrees, and the closed analysis-option
+  policy with modifier compatibility rules. Missing, unknown, duplicate, or
   contradictory fields are parse errors.
 - **Manifest Parse Result**: Valid or one of Unreadable, MalformedJson, UnsupportedSchema,
   MissingField, UnknownField, DuplicateArchitecture, InvalidDigest, or InconsistentAsset.
@@ -243,6 +246,15 @@ The launcher supplies the sole positional root and enables upstream default cach
 | Primary selector, zero or one | `--for=<text>`, `--pack-task=<text>`, `--callers=<symbol>`, `--callees=<symbol>`, `--uses=<symbol>`, `--impact=<symbol>`, `--situ`, `--pr-context=<ref>`, `--from-trace=<windows-path>`, `--whereis=<symbol>`, `--grep=<text>`, `--regex=<pattern>`, `--expand=<symbol-list>`, `--outline=<symbol-list>`, `--doctor` |
 | Numeric modifier | `--top-k=<non-negative-int>`, `--max-tokens=<positive-int>`, `--detail=<non-negative-int>` |
 | Boolean modifier | `--adaptive`, `--signatures-only`, `--json` |
+
+Modifiers retain the pinned CLI's companion rules. Within V1, `--adaptive` and
+`--signatures-only` require `--for`; positive `--detail` requires `--for` or `--whereis`.
+Positive detail and signature-only output contradict one another and are rejected.
+`--top-k=0` requires an `--expand` or `--outline` payload. Numeric values are bounded by
+the upstream maximum of 1,000,000,000. The manifest records these dependencies and
+conditional compatibility rules; invalid combinations fail before WSL starts.
+JSON output is supported only for the default map, `--for`, `--pack-task`, `--callers`,
+`--callees`, and `--impact` within V1, and cannot be combined with positive detail.
 
 Value-bearing options use attached `--name=value` syntax only. `--from-trace` is the only
 caller-supplied path option and its value is translated as a known path. Every other upstream or

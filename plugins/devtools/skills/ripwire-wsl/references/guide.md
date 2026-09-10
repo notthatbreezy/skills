@@ -30,6 +30,15 @@ The versioned configuration records the distro, normalized architecture, release
 identity, Linux binary path, and cache root. Keep it outside source control. A stale configuration
 requires explicit setup; analysis never updates it automatically.
 
+`Test-RipwireWsl.ps1 -Json` emits `schemaVersion: 1`, overall `status`, named `checks`, and
+`details`. Each check has `layer`, stable `code`, `status` (`Ready`, `Warning`, `Failed`, or
+`Skipped`), `message`, and `remediation`. Failed prerequisites stop dependent probes rather than
+inventing readiness. Exit 1 means a failed diagnostic; a first-use cache warning exits 0.
+The `binaryDigest` check is skipped because the manifest declares an archive hash, not a digest
+of the extracted executable. With `-WorktreePath`, details include the translated root and Git
+directories, namespace/lock location, and the preserved Git overrides followed by the safety entry.
+Override values may contain caller-provided information; do not publish the report unredacted.
+
 `-LinuxInstallRoot` and `-LinuxCacheRoot` provide separate native-Linux setup locations for
 isolated installations. Default binary storage is below
 `$HOME/.local/share/brownch-devtools/ripwire-wsl`; cache storage is below
@@ -52,6 +61,13 @@ an array, not a shell command string. Value-bearing options use attached `--name
 Choose at most one primary selector. The complete accepted selector/modifier grammar lives in
 [`release.json`](release.json); unknown flags fail before WSL starts.
 
+For task context, combine `--for=...` with either `--detail=1` for bodies or
+`--signatures-only` for signatures, not both. `--adaptive` also needs `--for` in V1.
+Use `--top-k` to bound the default ranked map; some report selectors reject it, and
+`--for` warns that it is ignored. The manifest also enforces the pinned CLI's
+conditional modifier rules before WSL starts.
+`--json` requires a JSON-capable selector and cannot be combined with positive detail.
+
 The V1 contract focuses on orientation, symbol relationships, targeted context, and change
 exploration. Extra quality/architecture commands and baseline workflows are not qualified. Rejected
 commands are not necessarily mutating: rejection also means their behavior is outside this release's
@@ -62,6 +78,11 @@ Ripwire stdout and stderr are forwarded as bytes, with the child exit code prese
 go to stderr. Invocation rejection codes are 64 (additional root), 65 (mutation), 66 (MCP),
 67 (output), 68 (unknown), and 69 (invalid syntax). Windows PowerShell 5.1 rejects runtime entrypoints
 with `RIPWIRE_WSL_UNSUPPORTED_RUNTIME`, exit 78, before probing or changing anything.
+
+Upstream `--doctor` is an analysis selector, not the read-only toolkit setup doctor. It may return
+exit 1 with a `binary-path` warning because the toolkit invokes an explicit binary without adding
+it to Linux PATH. That warning does not invalidate toolkit configuration; use `Test-RipwireWsl.ps1`
+for setup readiness. Do not change shell startup files merely to silence upstream's PATH advice.
 
 ## Paths and scope
 
@@ -76,7 +97,9 @@ conversion does not translate paths inside a future MCP protocol.
 
 Windows Git resolves linked-worktree metadata. The child receives translated process-local Git
 paths and a final `core.fsmonitor=false` override, preserving valid inherited overrides without
-rewriting `.git` or configuration. This scopes Git calls to one worktree: it is not a general adapter
+rewriting `.git` or configuration. It also appends `diff.autoRefreshIndex=false`: Git diff can
+otherwise rewrite cached file-stat information in the index, even with optional locks disabled.
+This scopes Git calls to one worktree: it is not a general adapter
 for arbitrary other repositories opened inside the same process. Upstream raw `.git` readers can
 bypass Git environment variables; do not claim every upstream feature is compatible.
 
@@ -127,6 +150,34 @@ for editing, builds, tests, and Git mutations.
 - [Upstream Linux release baseline](https://github.com/redhat-et/ripwire/blob/v0.5.0/.github/workflows/release.yml)
 - [WSL commands](https://learn.microsoft.com/windows/wsl/basic-commands)
 - [WSL filesystems and environment transport](https://learn.microsoft.com/windows/wsl/filesystems)
+- [Git diff index refresh configuration](https://git-scm.com/docs/git-config#Documentation/git-config.txt-diffautoRefreshIndex)
 
 The toolkit is independently authored. The public launcher gist discussed during design had no
 declared reuse license and is not copied into this package.
+
+## Maintainer verification
+
+From the repository root, `pwsh -NoProfile -File .\Tests\Ripwire-Wsl-Toolkit.Tests.ps1`
+runs deterministic package, setup, diagnostic, and native-launcher fixtures without live WSL or
+network access. `-Mode Unit`, `-Mode Setup`, and `-Mode Launcher` select narrower groups.
+Windows PowerShell 5.1 supports `-Mode Unit` for static/package discovery only.
+The native launcher fixture uses the Windows .NET Framework C# compiler to build a temporary
+`wsl.exe` shim; a missing compiler is reported rather than replaced with a function-only mock.
+
+For real Bash transaction and cache failure coverage without downloading Ripwire, run
+`pwsh -NoProfile -File .\Tests\Ripwire-Wsl.Transaction.Tests.ps1 -Distribution <installed-Ubuntu-name>`
+and `pwsh -NoProfile -File .\Tests\Ripwire-Wsl.Bootstrap.Tests.ps1 -Distribution <installed-Ubuntu-name>`.
+Both use disposable fixtures rather than the operator's installation.
+
+Live modes are opt-in. `-Mode Feasibility` exercises the lower-level probe; `-Mode Integration`
+uses public setup, doctor, launcher, and clear scripts against disposable repositories.
+Run Integration without concurrent repository edits or test fixtures; it snapshots this workspace
+to detect unintended changes.
+Integration requires an existing `-Distribution`, an absolute disposable `-ConfigPath`,
+`-LinuxInstallRoot /tmp/ripwire-integration.<32-lowercase-hex>`, and a separate
+`-LinuxCacheRoot /tmp/ripwire-cache-feasibility.<32-lowercase-hex>`.
+Pass both `-AllowDownload -AllowInstall` only after authorization; otherwise supply an already
+staged test configuration/binary matching those paths. Test-only Python is needed for independent
+Linux filesystem/argument observations; the production toolkit does not require it.
+Local JSON reports can contain fixture paths and inherited Git override values; keep them out of
+version control.

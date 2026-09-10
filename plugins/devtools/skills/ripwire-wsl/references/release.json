@@ -13,7 +13,16 @@
       "url": "https://github.com/redhat-et/ripwire/releases/download/v0.5.0/ripwire-0.5.0-linux-x64.tar.gz",
       "sha256": "f06e9d7e55032e8e5c397405ed72a19d6e70767d28c8c617a925de4401779f50",
       "archiveRoot": "ripwire-0.5.0-linux-x64",
-      "payload": "ripwire-0.5.0-linux-x64/ripwire"
+      "payload": "ripwire-0.5.0-linux-x64/ripwire",
+      "archiveFiles": [
+        "ripwire",
+        "README.md",
+        "LICENSE"
+      ],
+      "archiveDirectories": [
+        "skills",
+        "hooks"
+      ]
     },
     {
       "architecture": "arm64",
@@ -25,7 +34,16 @@
       "url": "https://github.com/redhat-et/ripwire/releases/download/v0.5.0/ripwire-0.5.0-linux-arm64.tar.gz",
       "sha256": "efe049b1645045e96751a51b1bc321b2d8653aa1f6ab5d7c2390eb3d49716bf0",
       "archiveRoot": "ripwire-0.5.0-linux-arm64",
-      "payload": "ripwire-0.5.0-linux-arm64/ripwire"
+      "payload": "ripwire-0.5.0-linux-arm64/ripwire",
+      "archiveFiles": [
+        "ripwire",
+        "README.md",
+        "LICENSE"
+      ],
+      "archiveDirectories": [
+        "skills",
+        "hooks"
+      ]
     }
   ],
   "options": [
@@ -47,8 +65,8 @@
     { "name": "--top-k", "kind": "numeric-modifier", "valueGrammar": "non-negative-int", "repeatable": false, "dependencies": [], "rejectionCategory": null },
     { "name": "--max-tokens", "kind": "numeric-modifier", "valueGrammar": "positive-int", "repeatable": false, "dependencies": [], "rejectionCategory": null },
     { "name": "--detail", "kind": "numeric-modifier", "valueGrammar": "non-negative-int", "repeatable": false, "dependencies": [], "rejectionCategory": null },
-    { "name": "--adaptive", "kind": "boolean-modifier", "valueGrammar": "none", "repeatable": false, "dependencies": [], "rejectionCategory": null },
-    { "name": "--signatures-only", "kind": "boolean-modifier", "valueGrammar": "none", "repeatable": false, "dependencies": [], "rejectionCategory": null },
+    { "name": "--adaptive", "kind": "boolean-modifier", "valueGrammar": "none", "repeatable": false, "dependencies": ["--for"], "rejectionCategory": null },
+    { "name": "--signatures-only", "kind": "boolean-modifier", "valueGrammar": "none", "repeatable": false, "dependencies": ["--for"], "rejectionCategory": null },
     { "name": "--json", "kind": "boolean-modifier", "valueGrammar": "none", "repeatable": false, "dependencies": [], "rejectionCategory": null },
     { "name": "--edit", "kind": "rejected", "valueGrammar": "any", "repeatable": false, "dependencies": [], "rejectionCategory": "mutation" },
     { "name": "--apply", "kind": "rejected", "valueGrammar": "any", "repeatable": false, "dependencies": [], "rejectionCategory": "mutation" },
@@ -63,5 +81,39 @@
     { "name": "--no-cache", "kind": "rejected", "valueGrammar": "any", "repeatable": false, "dependencies": [], "rejectionCategory": "output" },
     { "name": "--index", "kind": "rejected", "valueGrammar": "any", "repeatable": false, "dependencies": [], "rejectionCategory": "output" },
     { "name": "--output", "kind": "rejected", "valueGrammar": "any", "repeatable": false, "dependencies": [], "rejectionCategory": "output" }
-  ]
+  ],
+  "compatibility": {
+    "conditionalRequires": [
+      { "option": "--detail", "condition": "positive", "requiresAny": ["--for", "--whereis"] },
+      { "option": "--top-k", "condition": "zero", "requiresAny": ["--expand", "--outline"] }
+    ],
+    "exclusions": [
+      {
+        "option": "--signatures-only",
+        "condition": "present",
+        "excludedOption": "--detail",
+        "excludedCondition": "positive"
+      },
+      {
+        "option": "--json",
+        "condition": "present",
+        "excludedOption": "--detail",
+        "excludedCondition": "positive"
+      }
+    ],
+    "selectorRejections": [
+      {
+        "option": "--top-k",
+        "selectors": ["--callers", "--callees", "--whereis", "--grep", "--regex", "--impact", "--uses"]
+      },
+      {
+        "option": "--max-tokens",
+        "selectors": ["--callers", "--callees", "--whereis", "--grep", "--regex", "--impact", "--uses"]
+      },
+      {
+        "option": "--json",
+        "selectors": ["--uses", "--situ", "--pr-context", "--from-trace", "--whereis", "--grep", "--regex", "--expand", "--outline", "--doctor"]
+      }
+    ]
+  }
 }
