@@ -6,8 +6,8 @@ The `ripwire-wsl` skill packages Windows entrypoints and a Linux process bootstr
 `brownch-devtools` plugin. Its target is the current Windows worktree, not a second checkout.
 Ripwire v0.5.0 runs inside an explicitly configured Ubuntu WSL distribution against those same files.
 
-This reference describes the implementation interfaces. Delivery and live qualification status
-remain in `Plan.md`; the presence of an interface here is not a claim that final review is complete.
+This reference describes the implementation interfaces. Delivery, live qualification, and final
+review outcomes are recorded in `Plan.md`.
 
 ## Architecture and Design
 
@@ -52,10 +52,19 @@ executable payload. Setup validates names and entry types throughout the archive
 only the executable; it never runs the bundled installer, skills, or hooks. Windows configuration
 staging stays beside its destination, and Linux binary staging stays beside its destination.
 Those sibling paths permit same-filesystem rename and rollback without treating a copy as atomic.
+Rollback covers detected command failures, not abrupt termination or host/WSL shutdown. V1 has no
+durable transaction recovery or startup reconciliation; see the guide's
+[interrupted-installation limitation](../../../plugins/devtools/skills/ripwire-wsl/references/guide.md#interrupted-installation)
+for remaining artifacts and operator precautions.
+Concurrent setup sharing one Windows configuration is unsupported, including across distinct
+Linux install roots or distributions. Callers serialize it; V1 has no configuration-path lock.
 
 `RIPWIRE_WSL_OPERATION` is an internal closed operation (`analysis`, `diagnostic`, or `clear`),
 assigned by the Windows entrypoint. It is not a caller-supplied Ripwire option. Clear shares the
 bootstrap's cache validation and lock rather than implementing a second deletion policy.
+The clear interface requires a live worktree and a package-compatible configuration. Orphan and
+old-release namespaces have no current inventory or independent selective-clear API. Retention
+beyond those inputs is an accepted V1 limitation documented in the guide.
 
 ## User Guide
 
@@ -86,6 +95,8 @@ Default configuration is `%LOCALAPPDATA%\brownch-devtools\ripwire-wsl\config.jso
 contains exactly `schemaVersion`, `distribution`, `architecture`, `releaseVersion`, `releaseCommit`,
 `archiveSha256`, `binaryPath`, and `cacheRoot`. No worktree, branch, Git metadata path, or host MCP
 configuration is persisted.
+Configuration is an operator-trusted executable selector, not proof of installed binary
+authenticity. The downloaded archive is checksummed; a version probe executes the configured file.
 
 Common helpers return tagged configuration, invocation, worktree, path, and native-command results.
 Only validated configuration/invocation data reaches context construction. Unknown CLI arguments
@@ -96,6 +107,9 @@ Doctor JSON contains `schemaVersion`, overall `status`, named `checks`, and `det
 `layer`, `code`, `status`, `message`, and `remediation`. A missing first-use namespace is a warning,
 not a failed install. Archive and executable hashes are not interchangeable: the executable digest
 check is explicitly skipped because no separate binary digest is declared.
+Lock-free diagnosis may conservatively return structured `Failed` during concurrent cache changes,
+without inner worktree/cache details. Callers retry after the active operation finishes and
+investigate persistent failures rather than treating them as success.
 
 ## Testing
 

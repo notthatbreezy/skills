@@ -745,6 +745,15 @@ function Classify-RipwireInvocation {
     }
 }
 
+function Get-RipwireUnsupportedGitRedirectionNames {
+    @(
+        'GIT_INDEX_FILE', 'GIT_OBJECT_DIRECTORY', 'GIT_ALTERNATE_OBJECT_DIRECTORIES',
+        'GIT_NAMESPACE', 'GIT_PREFIX', 'GIT_CEILING_DIRECTORIES',
+        'GIT_DISCOVERY_ACROSS_FILESYSTEM', 'GIT_CONFIG', 'GIT_CONFIG_PARAMETERS',
+        'GIT_CONFIG_SYSTEM', 'GIT_CONFIG_GLOBAL', 'GIT_CONFIG_NOSYSTEM'
+    )
+}
+
 function New-RipwireChildEnvironment {
     [CmdletBinding()]
     param(
@@ -752,11 +761,17 @@ function New-RipwireChildEnvironment {
         [Parameter(Mandatory)][System.Collections.IDictionary] $Variables
     )
     $result = @{}
+    $unsupported = [Collections.Generic.HashSet[string]]::new(
+        [string[]] @(Get-RipwireUnsupportedGitRedirectionNames), [StringComparer]::OrdinalIgnoreCase)
     $environmentNames = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
     foreach ($name in $ParentEnvironment.Keys) {
         $textName = [string] $name
         if (-not $environmentNames.Add($textName)) {
             throw "RIPWIRE_WSL_DUPLICATE_ENVIRONMENT_VARIABLE: $textName"
+        }
+        if ($unsupported.Contains($textName) -and
+            -not [string]::IsNullOrEmpty([string] $ParentEnvironment[$name])) {
+            throw "RIPWIRE_WSL_UNSUPPORTED_GIT_REDIRECTION: $textName. Remove this variable and its WSLENV entry from the launch environment; use supported indexed Git overrides instead."
         }
         $result[$textName] = $ParentEnvironment[$name]
     }
@@ -778,6 +793,9 @@ function New-RipwireChildEnvironment {
             }
             $name = $Matches[1]
             $flags = $Matches[2]
+            if ($unsupported.Contains($name)) {
+                throw "RIPWIRE_WSL_UNSUPPORTED_GIT_REDIRECTION: $name. Remove this variable and its WSLENV entry from the launch environment; use supported indexed Git overrides instead."
+            }
             if ($transported.ContainsKey($name)) { throw "RIPWIRE_WSL_DUPLICATE_WSLENV: $name" }
             if ($flags) {
                 $letters = $flags.ToCharArray()
@@ -993,13 +1011,9 @@ function Get-RipwireCurrentEnvironment {
 function Get-RipwireWindowsGitDiscoveryEnvironment {
     param([Parameter(Mandatory)][System.Collections.IDictionary] $SourceEnvironment)
     $blocked = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
-    foreach ($name in @(
-        'GIT_DIR', 'GIT_WORK_TREE', 'GIT_COMMON_DIR', 'GIT_INDEX_FILE', 'GIT_OBJECT_DIRECTORY',
-        'GIT_ALTERNATE_OBJECT_DIRECTORIES', 'GIT_NAMESPACE', 'GIT_PREFIX',
-        'GIT_CEILING_DIRECTORIES', 'GIT_DISCOVERY_ACROSS_FILESYSTEM', 'GIT_CONFIG',
-        'GIT_CONFIG_COUNT', 'GIT_CONFIG_PARAMETERS', 'GIT_CONFIG_SYSTEM', 'GIT_CONFIG_GLOBAL',
-        'GIT_CONFIG_NOSYSTEM'
-    )) {
+    foreach ($name in (@(
+        'GIT_DIR', 'GIT_WORK_TREE', 'GIT_COMMON_DIR', 'GIT_CONFIG_COUNT'
+    ) + @(Get-RipwireUnsupportedGitRedirectionNames))) {
         $null = $blocked.Add($name)
     }
     $result = @{}

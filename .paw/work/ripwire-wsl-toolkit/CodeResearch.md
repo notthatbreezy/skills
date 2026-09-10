@@ -185,7 +185,8 @@ zero-cache-write requirement; the live evidence below describes that earlier con
 The revised cache-enabled probe now passes all 18 feasibility groups; see the follow-up evidence
 below. The user accepted Phase 0 and authorized remaining implementation on 2026-09-10. Production cache
 ownership/locking/maintenance and V1 option qualification are now covered by the finished-toolkit
-evidence below. Other hosts remain unqualified; final SoT review is still pending.
+evidence below. Other hosts remain unqualified. Final SoT review and focused post-remediation
+verification are complete; see `Plan.md` for dispositions.
 
 `Spec.md` still defines the exact V1 option language. This finding does not authorize removing
 `--for`, changing the pin, or silently broadening the launcher's accepted language.
@@ -362,3 +363,21 @@ an index copy, write-and-restore cleanup, or removal of a supported exploration 
 Run Integration alone because it snapshots this repository as well as the fixtures. Concurrent
 tests that create temporary directories in this repository correctly fail that non-mutation oracle.
 Raw reports stay local because they can contain machine paths and inherited Git override values.
+
+### Post-review Git-environment qualification
+
+The final review approved rejection of twelve inherited Git redirection variables or their
+`WSLENV` transport tokens before Windows Git discovery or WSL starts. Supported indexed Git
+configuration overrides remain supported, and the parent environment is unchanged. Unit tests
+cover value/token/both/case-alias variants; native launcher tests cover all twelve names in
+value/token/both variants with exit 78 and zero WSL starts.
+
+Success fixtures explicitly remove unsupported host redirects from their child environment rather
+than weakening the production rejection policy. An isolated fresh-install integration rerun on
+PowerShell 7.6.6, Ubuntu 26.04 x86-64, and Linux Git 2.53.0 passed all 20 groups with successful
+cleanup. The archive pin is unchanged. Primary-workspace, target, Git, configuration, and parent
+environment observations passed without snapshot exclusions or concurrent workspace writes.
+
+The nine follow-up specialist workers reported no actionable findings; the parent supplied the
+testing lens. Review scope was the approved Git-environment remediation and documentation-only
+operational limits, not unapproved features or qualification of additional hosts.

@@ -481,6 +481,28 @@ try {
     } @{ GIT_DIR = '/git' }
     Assert-Equal 1 @($pretransportedCount.WSLENV -split ':' |
         Where-Object { $_ -ceq 'GIT_CONFIG_COUNT/u' }).Count 'Valid count transport is not duplicated'
+    $unsupportedGitNames = @(
+        'GIT_INDEX_FILE', 'GIT_OBJECT_DIRECTORY', 'GIT_ALTERNATE_OBJECT_DIRECTORIES',
+        'GIT_NAMESPACE', 'GIT_PREFIX', 'GIT_CEILING_DIRECTORIES',
+        'GIT_DISCOVERY_ACROSS_FILESYSTEM', 'GIT_CONFIG', 'GIT_CONFIG_PARAMETERS',
+        'GIT_CONFIG_SYSTEM', 'GIT_CONFIG_GLOBAL', 'GIT_CONFIG_NOSYSTEM'
+    )
+    foreach ($name in $unsupportedGitNames) {
+        foreach ($variant in @('value', 'transport', 'both', 'case-alias')) {
+            $inputName = if ($variant -eq 'case-alias') { $name.ToLowerInvariant() } else { $name }
+            $bad = @{}
+            if ($variant -ne 'transport') { $bad[$inputName] = 'redirected' }
+            if ($variant -ne 'value') { $bad.WSLENV = "$inputName/p" }
+            $beforeBad = $bad | ConvertTo-Json -Compress
+            $message = ''
+            try { $null = New-RipwireChildEnvironment $bad @{} } catch { $message = $_.Exception.Message }
+            Assert-True ($message.StartsWith("RIPWIRE_WSL_UNSUPPORTED_GIT_REDIRECTION: $inputName.")) `
+                "$name $variant has a named rejection"
+            Assert-Equal $beforeBad ($bad | ConvertTo-Json -Compress) "$name leaves parent unchanged"
+        }
+        $discovery = Get-RipwireWindowsGitDiscoveryEnvironment @{ $name = 'redirected' }
+        Assert-True (-not $discovery.ContainsKey($name)) "$name is also excluded from discovery"
+    }
     Add-Pass 'child-only WSLENV and indexed Git override validation'
 
     $cacheA = New-RipwireCacheContext '/home/u/cache' 'v0.5.0' x64 '/mnt/c/a' '/mnt/c/repo/.git/worktrees/a' '/mnt/c/repo/.git' '/home/u/install/ripwire'
@@ -518,7 +540,8 @@ try {
     $bootstrapWindows = Join-Path $package 'scripts\invoke-ripwire-wsl.sh'
     $poisonedEnvironment = Get-RipwireCurrentEnvironment
     foreach ($name in @($poisonedEnvironment.Keys)) {
-        if ($name -cmatch '^GIT_CONFIG_(?:COUNT|PARAMETERS|KEY_[0-9]+|VALUE_[0-9]+)$') {
+        if ($name -cmatch '^GIT_CONFIG_(?:COUNT|PARAMETERS|KEY_[0-9]+|VALUE_[0-9]+)$' -or
+            $name -in $unsupportedGitNames) {
             $poisonedEnvironment.Remove($name)
         }
     }

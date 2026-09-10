@@ -474,7 +474,8 @@ being disabled. The bootstrap now appends `diff.autoRefreshIndex=false` before t
 source and Git metadata. This is not a filesystem sandbox.
 
 Run live integration without concurrent tests or edits in this repository: its workspace snapshots
-deliberately detect temporary launcher fixtures and other changes. Final SoT review remains pending.
+deliberately detect temporary launcher fixtures and other changes. Final SoT review and the
+post-remediation verification are complete; see Final review decisions below.
 
 ### Changes Required
 
@@ -646,7 +647,7 @@ blocking feasibility gate and managed caching; it does not claim those reviewers
 | SC-008 runner compatibility | 0-5 | Default deterministic mode; explicit Feasibility and Integration | Expected mode list and exit 0 | Default never invokes live WSL; 5.1 runtime exits before effects |
 | SC-009 plugin discovery | 5 | Staged package manifest/frontmatter validation | Skill resolves from package path/version under test | No user Copilot config access |
 | SC-010 analysis boundary | 1,3 | Exact Spec option table; every other known/unknown flag and non-flag token | Invocation variant and stable rejection code; rejected invocations start no WSL | Rejected invocations leave target, caches, and parent environment unchanged |
-| SC-011 transaction | 2 | Every pre/post-swap failure point | Prior bytes/mode/config preserved or restored | Inject one failure at each state transition |
+| SC-011 transaction | 2 | Detected pre/post-swap command failures, serialized setup | Prior bytes/mode/config preserved or restored; rollback failures reported | Inject command failure at each transition; crash recovery and concurrent shared-config setup excluded |
 | SC-012 cache reuse/freshness | 0,3-4 | Warm process, fresh namespace, dirty edit, HEAD change, second worktree | Observable source-cache reuse and equivalent current results; timings recorded | Stale results or shared worktree namespaces fail |
 | SC-013 cache write boundary/maintenance | 0-4 | Missing/corrupt cache, unsafe paths, permission/lock failures, explicit clear | Only owned cache/lock changes; safe rebuild and scoped clear | No fallback, deletion outside namespace, or silent failure |
 
@@ -655,6 +656,35 @@ manifest, and package checks as they are implemented. `Feasibility` and `Integra
 never included by the default mode, and require disposable Linux staging/install paths.
 `Integration` additionally requires a disposable `-ConfigPath`. Neither live mode may download or
 stage a binary without the separate approval and capability flags described in its phase.
+
+## Final review decisions
+
+The final SoT used the initial ten-specialist sweep plus two debate rounds, with OpenAI, Grok,
+Gemini, and an explicit type-safety lens. The testing worker produced no second-round artifact;
+the parent supplied explicitly attributed testing-lens responses in rounds 2 and 3. No factual
+disputes remained after round 3. All 17 dispositions were settled before resuming remediation.
+
+Only F03 authorizes a runtime change: reject unsupported inherited Git redirection before WSL
+starts, preserving supported indexed overrides and unrelated environment state. F02/F04/F07/F08/F11
+are documentation-only accepted limits: interruption recovery, trusted executable configuration,
+orphan/old-release cache maintenance, transient lock-free diagnosis, and concurrent shared-config
+setup. F06 is deferred; F12 and F15 preserve current diagnostics and coverage. F01/F05/F13/F17
+were skipped or factually withdrawn; F09/F10/F16 await measurements; F14 preserves bounded locking.
+
+Post-remediation verification is complete against the accepted contract. Nine specialist workers
+returned no actionable findings; the parent covered the testing lens with explicit GPT-6 Astra
+attribution. This was a focused verification pass, not a fourth global debate round.
+
+F03 unit and native-launcher coverage passed, including rejection before any WSL start. An earlier
+live run reached the primary-workspace snapshot assertion while review artifacts were changing.
+The isolated fresh-install rerun passed all 20 groups with successful cleanup and unchanged primary
+workspace, targets, Git metadata, configuration, and parent environment. The same strict snapshot
+oracle remains; only differing-path diagnostics were improved. Raw reports and review scratch
+artifacts remain local.
+
+All implementation and review gates are complete. Update existing draft PR #3 with these outcomes
+and preserve the planning documents in commit history under the configured commit-and-clean
+lifecycle. The PR remains draft for the human handoff; no merge is authorized.
 
 ## References
 

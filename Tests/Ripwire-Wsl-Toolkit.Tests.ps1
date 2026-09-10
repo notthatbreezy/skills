@@ -210,6 +210,13 @@ try {
     $arch = Require-Success (Invoke-Wsl @('uname', '-m')) 'Architecture probe'
     $package = Join-Path (Split-Path -Parent $PSScriptRoot) 'plugins\devtools\skills\ripwire-wsl'
     . (Join-Path $package 'scripts\RipwireWsl.Common.ps1')
+    # Keep live success fixtures independent of host Git redirects; rejection has native tests.
+    $unsupportedGitNames = @(Get-RipwireUnsupportedGitRedirectionNames)
+    $publicEnvironment = @{}
+    foreach ($name in $unsupportedGitNames) { $publicEnvironment[$name] = $null }
+    $publicEnvironment.WSLENV = (@(([string] $env:WSLENV) -split ':' | Where-Object {
+        ($_ -split '/')[0] -notin $unsupportedGitNames
+    })) -join ':'
     $manifest = Read-RipwireReleaseManifest (Join-Path $package 'references\release.json')
     Assert-Equal 'Valid' ([string] $manifest.State) 'Release manifest'
     $mapped = Resolve-RipwireArchitecture $manifest.Manifest $arch
@@ -374,9 +381,11 @@ try {
                         $parent[$name] = $null
                     }
                 }
-                # Windows global-config paths are translated by WSLENV for this test process.
-                $parent.GIT_CONFIG_GLOBAL = $emptyConfig
-                $parent.WSLENV = $parent.WSLENV.Replace('GIT_CONFIG_GLOBAL/u', 'GIT_CONFIG_GLOBAL/up')
+                # The public launcher rejects the direct probe's config-file redirection.
+                foreach ($name in $unsupportedGitNames) { $parent[$name] = $null }
+                $parent.WSLENV = (@($parent.WSLENV -split ':' | Where-Object {
+                    ($_ -split '/')[0] -notin $unsupportedGitNames
+                })) -join ':'
                 $json = ConvertTo-Json -InputObject $arguments -Compress
                 return Invoke-ProbeProcess 'pwsh' @('-NoProfile', '-File', (Join-Path $assets 'invoke-toolkit.ps1'),
                     '-Launcher', (Join-Path $package 'scripts\Invoke-RipwireWsl.ps1'), '-WorktreePath', $root,
@@ -453,9 +462,11 @@ try {
         $childEnv.RIPWIRE_BIN = $binary
         if ($Mode -eq 'Integration') {
             $beforeDoctor = Get-LinuxSnapshot
-            $doctor = (Require-Success (Invoke-ProbeProcess 'pwsh' @('-NoProfile', '-File',
+            $doctorResult = Invoke-ProbeProcess 'pwsh' @('-NoProfile', '-File',
                 (Join-Path $package 'scripts\Test-RipwireWsl.ps1'), '-WorktreePath', $root,
-                '-ConfigPath', $ConfigPath, '-Json') @{}) 'Production doctor') | ConvertFrom-Json
+                '-ConfigPath', $ConfigPath, '-Json') $publicEnvironment
+            if ($doctorResult.ExitCode -ne 0) { $report['doctorFailure'] = $doctorResult.OutputText() }
+            $doctor = (Require-Success $doctorResult 'Production doctor') | ConvertFrom-Json
             Assert-Equal $linuxRoot $doctor.details.worktree.root 'Doctor current root'
             Assert-Equal $contexts[$root].gitDir $doctor.details.worktree.gitDirectory 'Doctor Git directory'
             Assert-Equal $contexts[$root].commonDir $doctor.details.worktree.commonDirectory 'Doctor common directory'
@@ -546,7 +557,7 @@ try {
         if ($Mode -eq 'Integration') {
             $null = Require-Success (Invoke-ProbeProcess 'pwsh' @('-NoProfile', '-File',
                 (Join-Path $package 'scripts\Clear-RipwireWslCache.ps1'), '-WorktreePath', $root,
-                '-ConfigPath', $ConfigPath) @{}) 'Explicit production cache clear'
+                '-ConfigPath', $ConfigPath) $publicEnvironment) 'Explicit production cache clear'
             Assert-Equal 1 (Invoke-Wsl @('test', '-e', $namespace)).ExitCode 'Clear deletes selected namespace'
             $rebuilt = Invoke-CacheObservation $queryArgs 1 0
             Assert-Equal $analysis $rebuilt.text 'Clear then rebuild preserves result'
@@ -598,7 +609,7 @@ try {
     $cases.Add('fsmonitor positive/negative control')
     Assert-FileSnapshot $baseline (@($main, $linked, $emptyConfig) + $windowsGlobal) 'No source/Git/config mutation'
     Assert-Equal $primaryStatus (Invoke-FixtureGit @('-C', $repositoryRoot, 'status', '--porcelain')) 'Primary repository status unchanged'
-    Assert-Equal $primaryBaseline (Get-FileSnapshot @($repositoryRoot)) 'Primary repository content unchanged'
+    Assert-FileSnapshot $primaryBaseline @($repositoryRoot) 'Primary repository content unchanged'
     Assert-Equal $parentEnvironment ([Environment]::GetEnvironmentVariables() | ConvertTo-Json -Compress) 'Parent environment unchanged'
     $cases.Add('Windows target/Git/config and primary repository unchanged; parent environment preserved')
 

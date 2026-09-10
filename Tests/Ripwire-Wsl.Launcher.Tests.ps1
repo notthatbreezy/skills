@@ -119,6 +119,13 @@ try {
     }
     $baseEnvironment.GIT_CONFIG_KEY_0 = 'fixture.launcher'
     $baseEnvironment.GIT_CONFIG_VALUE_0 = 'quoted Ω value\'
+    $unsupportedGitNames = @(
+        'GIT_INDEX_FILE', 'GIT_OBJECT_DIRECTORY', 'GIT_ALTERNATE_OBJECT_DIRECTORIES',
+        'GIT_NAMESPACE', 'GIT_PREFIX', 'GIT_CEILING_DIRECTORIES',
+        'GIT_DISCOVERY_ACROSS_FILESYSTEM', 'GIT_CONFIG', 'GIT_CONFIG_PARAMETERS',
+        'GIT_CONFIG_SYSTEM', 'GIT_CONFIG_GLOBAL', 'GIT_CONFIG_NOSYSTEM'
+    )
+    foreach ($name in $unsupportedGitNames) { $baseEnvironment[$name] = $null }
 
     $missingConfig = Join-Path $testRoot 'missing-config.json'
     $rejections = [ordered]@{
@@ -156,6 +163,22 @@ try {
         Assert-Equal 0 (Read-StartCount $countPath) "$($option.name) rejects before any WSL process"
     }
     Add-Pass 'all pinned denied options and closed rejection classes fail with exact codes before WSL'
+
+    foreach ($name in $unsupportedGitNames) {
+        foreach ($variant in @('value', 'transport', 'both')) {
+            Remove-Item $countPath,$recordPath,$endpointRecordPath -Force -ErrorAction SilentlyContinue
+            $environment = $baseEnvironment.Clone()
+            if ($variant -ne 'transport') { $environment[$name] = 'redirected' }
+            if ($variant -ne 'value') { $environment.WSLENV = "$name/u" }
+            $rejected = Invoke-Launcher $linked $configPath @('--situ') $environment
+            Assert-Equal 78 $rejected.ExitCode "$name $variant fails preflight"
+            Assert-True ($rejected.ErrorText().Contains("RIPWIRE_WSL_UNSUPPORTED_GIT_REDIRECTION: $name.")) `
+                "$name $variant reports the unsupported variable"
+            Assert-Equal 0 (Read-StartCount $countPath) "$name $variant starts no WSL process"
+            Assert-True (-not (Test-Path -LiteralPath $endpointRecordPath)) "$name never reaches Ripwire"
+        }
+    }
+    Add-Pass 'unsupported inherited Git redirection fails before WSL'
 
     Remove-Item $countPath -Force -ErrorAction SilentlyContinue
     $nested = Join-Path $linked 'nested'

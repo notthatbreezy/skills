@@ -161,7 +161,10 @@ Acceptance Scenarios:
   Append `diff.autoRefreshIndex=false` immediately before the final fsmonitor entry: Git's
   porcelain diff can otherwise refresh index stat data despite `GIT_OPTIONAL_LOCKS=0`.
 - **FR-006**: Malformed inherited Git override state shall produce an actionable failure rather
-  than replacement, truncation, or silent defaulting. (Stories: P3, P4)
+  than replacement, truncation, or silent defaulting. Unsupported inherited index, object,
+  namespace, discovery, or configuration-file redirection and their `WSLENV` entries shall be
+  rejected before WSL starts. Preserve supported indexed overrides and unrelated environment
+  entries; assign toolkit-owned Git root metadata in the child only. (Stories: P3, P4)
 - **FR-007**: The launcher shall preserve argument boundaries, copy Ripwire stdout and stderr as raw
   bytes without text decoding/newline conversion, keep launcher diagnostics on stderr, and return
   the Ripwire exit code. (Stories: P4)
@@ -192,8 +195,10 @@ Acceptance Scenarios:
   output/cache/index, baseline, MCP/listen, and additional-root controls before creating a WSL process.
   (Stories: P1, P4)
 - **FR-017**: Installation shall be transactional: validate in staging, preserve prior binary and
-  configuration bytes until post-swap health succeeds, restore both after any post-swap failure,
-  and commit configuration last. (Stories: P2)
+  configuration bytes until post-swap health succeeds, restore both after detected post-swap
+  command failures, and commit configuration last. Abrupt process termination, WSL shutdown,
+  and host restart are outside the rollback guarantee; document the potential partial state and
+  absence of automatic recovery or interrupted-transaction detection. (Stories: P2)
 - **FR-018**: Caching shall be enabled by default for source ingestion and Git history, using a
   persistent, user-private Linux cache namespace scoped to the pinned release, architecture, and
   canonical worktree identity. No cache may be located in the target, Git metadata, Windows-mounted
@@ -375,9 +380,10 @@ an explicit schema version.
   plugin manifest without reading or changing the user's Copilot configuration. (FR-001, FR-014)
 - **SC-010**: Every disallowed or unknown invocation fixture exits before `wsl.exe` starts, identifies
   the option class, and leaves the parent environment and target unchanged. (FR-016)
-- **SC-011**: Every install failure preserves or restores the prior binary bytes, executable mode,
+- **SC-011**: Detected install command failures preserve or restore the prior binary bytes, executable mode,
   and configuration bytes; successful commit occurs only after staged and post-swap health checks.
-  (FR-008, FR-017)
+  Rollback/cleanup failures are reported separately. Abrupt termination is excluded as documented
+  in FR-017. (FR-008, FR-017)
 - **SC-012**: Repeated processes using one cache namespace demonstrate source-cache reuse with
   unchanged analysis results. Dirty-source and HEAD changes produce current results; distinct
   linked worktrees do not share toolkit namespaces. Warm/cold timings are recorded without an
@@ -423,6 +429,25 @@ an explicit schema version.
   support does not expand the exploration allowlist.
 - Automatic cache expiry/quotas and a hard read-only filesystem sandbox.
 - Publishing, pushing, opening a PR, or changing user-global configuration during planning.
+
+### Accepted V1 operational limits
+
+- Machine-local configuration, including custom `-ConfigPath`, is operator-trusted executable
+  selection. Archive checksums verify installation downloads; neither configuration metadata
+  nor a version probe authenticates the current executable. No additional launch-time
+  executable checks or configuration-path restrictions are required.
+- Callers serialize setup against a shared configuration path, including across different
+  distributions/install roots. Concurrent replacement of one configuration is unsupported;
+  install-root locks do not guarantee shared-configuration isolation.
+- The public clear command requires a live worktree and package-compatible configuration.
+  Orphaned and older-release namespaces may outlive supported maintenance inputs. V1 documents
+  this limitation without adding namespace inventory, independent selectors, or automatic cleanup.
+- Lock-free diagnosis is not an atomic snapshot. Concurrent cache changes may yield structured
+  `Failed` JSON without inner worktree/cache details. Retry after active operations finish;
+  persistent unsafe-state and I/O failures must still be investigated.
+- Repeatable-option support remains disabled in the shipped policy. Its parser/manifest
+  representation gap is deferred until repetition is needed. Current error rendering and
+  index-refresh regression coverage remain unchanged by the final-review decisions.
 
 ## Dependencies
 

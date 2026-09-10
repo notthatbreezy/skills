@@ -30,6 +30,12 @@ The versioned configuration records the distro, normalized architecture, release
 identity, Linux binary path, and cache root. Keep it outside source control. A stale configuration
 requires explicit setup; analysis never updates it automatically.
 
+Configuration is an operator-trusted choice of executable, including when using `-ConfigPath`.
+Use configuration from a trusted setup, not a file supplied by an untrusted repository or response.
+The archive checksum verifies the download during installation; matching configuration fields do
+not authenticate the file currently at `binaryPath`. Doctor's version probe executes that file and
+reports health, not authenticity. Analysis does not add a separate executable-authentication gate.
+
 `Test-RipwireWsl.ps1 -Json` emits `schemaVersion: 1`, overall `status`, named `checks`, and
 `details`. Each check has `layer`, stable `code`, `status` (`Ready`, `Warning`, `Failed`, or
 `Skipped`), `message`, and `remediation`. Failed prerequisites stop dependent probes rather than
@@ -39,12 +45,40 @@ of the extracted executable. With `-WorktreePath`, details include the translate
 directories, namespace/lock location, and the preserved Git overrides followed by the safety entry.
 Override values may contain caller-provided information; do not publish the report unredacted.
 
+Worktree/cache diagnosis is read-only and lock-free, not an atomic snapshot. Concurrent analysis or
+clear can remove an entry during inspection: the public JSON remains a structured `Failed` report,
+but its inner worktree/cache details may be unavailable. Retry after the active operation finishes.
+If failure persists, investigate the reported condition; a retry is not permission to ignore
+unsafe ownership, permissions, links, or other I/O failures.
+
 `-LinuxInstallRoot` and `-LinuxCacheRoot` provide separate native-Linux setup locations for
 isolated installations. Default binary storage is below
 `$HOME/.local/share/brownch-devtools/ripwire-wsl`; cache storage is below
 `$HOME/.cache/brownch-devtools/ripwire-wsl`. Cache data is not part of the binary transaction.
 Installation validates staging before replacement, verifies the installed executable before
 committing configuration, and reports rollback or cleanup failures separately.
+
+Run setup sequentially for a shared `ConfigPath`, even when using different distributions or
+Linux install roots. Concurrent setup against one configuration is unsupported: the install-root
+locks do not protect that shared Windows file, and a failing install can restore its backup over
+another install's successful configuration. There is no additional configuration-path lock in V1.
+
+### Interrupted installation
+
+Rollback handles command failures while the installer is running; it is not crash recovery.
+Process termination, WSL shutdown, or a host restart during replacement can leave the binary or
+configuration missing, only partly replaced, or accompanied by staging/backup files. A subsequent
+setup run uses a new transaction ID and does not detect or reconcile the earlier transaction.
+
+After an interrupted setup, pause analysis and preserve the remaining files for manual inspection.
+Binary artifacts are siblings named `.ripwire.stage.<id>`, `.ripwire.backup.<id>`, or
+`.ripwire.failed.<id>`; configuration artifacts are `.<config-filename>.stage.<id>` and
+`.<config-filename>.backup.<id>` beside the selected configuration. Keep the distribution,
+installation root, and configuration path associated with that attempt. A filename alone does not
+prove that a backup is the correct version to restore. Resolve the exact installation state before
+retrying; broad cleanup of backups is not a recovery procedure. Run the toolkit doctor against the
+selected configuration before resuming analysis. V1 provides neither automatic recovery nor a
+dedicated recovery command.
 
 ## Analysis
 
@@ -124,7 +158,13 @@ Clear and analysis coordinate exclusive access to that namespace with a bounded 
 worktrees have independent namespaces. Invalid ownership, escaped links, Windows-mounted storage,
 overlap with target/Git/binary paths, and lock failures are errors, not reasons to use a fallback
 directory. Clear does not delete the root, other namespaces, source, Git metadata, or installation.
-Older-release caches remain until explicitly maintained using that release's configuration.
+Clear caches before deleting or moving a worktree, or advancing the toolkit release, when you
+want to use the supported clear command. It requires the original live worktree and a configuration
+matching the packaged release. An old configuration alone is not accepted by a newer toolkit.
+Orphaned and older-release namespaces can remain on disk without a supported inventory or
+selective-clear route in the current toolkit. Their hashed IDs do not recover project names.
+V1 provides no automatic cleanup for these leftovers; any manual maintenance requires identifying
+the exact owned namespace and preserving the path, ownership, and active-operation safeguards.
 
 ## Safety and troubleshooting
 
@@ -139,6 +179,7 @@ for editing, builds, tests, and Git mutations.
 | Missing/stale/malformed configuration | Run toolkit diagnostics, then explicitly rerun setup with the intended distro/configuration |
 | Missing WSL, distro, Linux Git, or utilities | Have the operator satisfy that specific prerequisite; do not change host features automatically |
 | Invalid inherited Git/WSLENV entries | Correct the named malformed entry in the caller; do not silently discard the environment |
+| `RIPWIRE_WSL_UNSUPPORTED_GIT_REDIRECTION` | Remove the named variable and its `WSLENV` entry from the launch environment. Index/object/config-file and discovery redirection are unsupported; valid indexed Git overrides remain supported. The launcher leaves the parent environment unchanged. |
 | Invalid worktree or failed translation | Confirm the exact current checkout still exists; never fall back to the main checkout |
 | Cache ownership/path/lock error | Inspect the configured Linux cache and active analysis; resolve permissions or contention rather than bypassing coordination |
 | Analysis is slower on a mounted drive | Keep the same worktree for correctness; Linux-resident binary/cache reduce some overhead, not mounted-file costs |
