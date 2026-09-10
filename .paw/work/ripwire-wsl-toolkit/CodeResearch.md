@@ -177,6 +177,89 @@ The root installer remains responsible only for installing the plugin as a unit.
 
 ## Open Questions
 
-No user-intent questions remain. `Spec.md` defines the exact V1 option language; implementation must
-encode that approved table beside the release pin and verify its spellings against `v0.5.0`
-`src/cli.h` without broadening it.
+Phase 0 exposed a contract decision: may analysis create history-cache files in a dedicated,
+per-invocation Linux temporary directory, outside the target, with explicit cleanup and failure
+reporting? The current plan disallows any cache delta even there. No exception has been approved.
+Keep Phase 1 blocked until that decision is made, or stop this release's implementation if the
+strict contract must remain.
+
+`Spec.md` still defines the exact V1 option language. This finding does not authorize removing
+`--for`, changing the pin, or silently broadening the launcher's accepted language.
+
+## Live Phase 0 Evidence
+
+### Scope and reproduction
+
+Executed on 2026-09-10 with explicit user permission for download and disposable staging.
+Environment: Windows with PowerShell 7.6.5, Ubuntu 26.04 on WSL 2,
+Linux x86-64, Git 2.53.0, and test-only Python 3.14.4. The binary reported
+`ripwire 0.5.0 (Release, GNU 14.2.1, built_from=unknown)`. Its provenance is the pinned archive
+SHA-256, not the binary's unknown build label.
+
+Run the deterministic probe contracts without WSL:
+`pwsh -NoProfile -File .\Tests\Ripwire-Wsl-Toolkit.Tests.ps1`.
+
+The opt-in reproduction is
+`pwsh -NoProfile -File .\Tests\Ripwire-Wsl-Toolkit.Tests.ps1 -Mode Feasibility -Distribution <installed-Ubuntu-name> -AllowDownload -AllowInstall -ResultPath <absolute-report-path>`.
+Use an existing parent directory for the report. The test creates fresh disposable Windows and
+Linux fixture directories and deletes them in `finally`; JSON reports may contain those local
+paths and must not be committed. This minimal probe currently supports approved download/staging
+only, not reuse of the operator's installed binary. It does not execute upstream installation or
+agent-activation scripts.
+
+`Tests/fixtures/ripwire-wsl/ProbeProcess.ps1` owns the test-only native process boundary;
+`bootstrap.sh` appends the Git safety override; `probe.py` provides independent argument,
+environment, byte, and Linux filesystem observations. These are feasibility assets, not the
+finished public launcher. The source fixture contains `base_value`, its caller, a committed
+linked-worktree-only function, and an uncommitted function calling it. The main checkout and linked
+worktree have different commits, so reading the wrong checkout cannot satisfy the assertions.
+
+### Observed results
+
+| Obligation | Result |
+|---|---|
+| Root, Git directory, common directory, HEAD | Match independent Windows Git plus `wslpath` for both fixture roots |
+| Actual Ripwire orientation and targeted analysis | Correct root; expected nine-character commit stamp; `+dirty` only on linked fixture |
+| Dirty source, not just a dirty flag | Returned function body equals the uncommitted Windows source line; absent from main fixture map |
+| Caller and history queries | Known caller row present; `--pr-context=main` reports the changed file and correct base/current commit identities |
+| Real WSL argument boundary | Empty, quoted, spaced, Unicode, backslash, equals-sign, and path-like values preserved |
+| Streams and exit | Byte-identical stdout/stderr, including invalid UTF-8 and no final newline; more than 1 MiB on each stream; partial-output exit 23 preserved; empty output preserved |
+| Git overrides and fsmonitor | Existing note and `core.fsmonitor=true` retained, final false wins; hook sentinel fires only in the unprotected positive control |
+| Windows non-mutation | Fixture source, `.git`, configuration, workspace contents/status, and parent environment unchanged |
+| Linux non-mutation | **Fail:** each `--for` creates a history-cache blob and directories below the dedicated temporary prefix despite `--no-cache` |
+| Cleanup | All created Windows fixture/download and Linux staging/cache directories removed |
+
+The first smoke run lacked the Linux prefix snapshot and appeared to pass. The strengthened run
+supersedes it: the overall gate is **Fail**, not partial approval to implement. Per-command snapshots
+isolate the Linux changes to `--for`; rerunning with fresh fixtures reproduces the failure.
+
+### Root cause and implications
+
+The pinned release's
+[`quality::gitCoChangeAndChurnCached`](https://github.com/redhat-et/ripwire/blob/v0.5.0/src/quality.h#L2890-L2928)
+constructs a `qchurn` cache path and calls `atomicWriteFile` after a cold Git-history walk.
+[`main.cpp`](https://github.com/redhat-et/ripwire/blob/v0.5.0/src/main.cpp) gates the default
+ingestion cache on `cfg.noCache` but still calls the history-cache function for rich analysis.
+[`quality::cacheDirLadder`](https://github.com/redhat-et/ripwire/blob/v0.5.0/src/quality.h)
+uses `TMPDIR/ripwire` when `TMPDIR` is set. The probe observed two regular history-cache blobs,
+one for each root, there; the staged executable and monitored Linux home configuration/cache
+locations did not change.
+
+Thus `--no-cache` is not a universal no-write guarantee. The same-worktree architecture and
+transport were not disproved, but the current zero-cache-write acceptance criterion is unmet.
+No attempt was made to patch upstream, force cache writes to fail, remove core analysis, or weaken
+the requirement. A possible next design is disposable per-invocation scratch storage with cleanup,
+but it requires explicit approval and revised acceptance criteria before implementation continues.
+
+Additional implementation findings:
+
+- The release archive contains bundled skills/hooks as well as the executable. Validate paths and
+  entry types, then extract only the exact binary for this probe; do not activate bundled assets.
+- Set child-only `GIT_OPTIONAL_LOCKS=0` for observational Git calls to avoid optional index refresh
+  writes ([Git environment reference](https://git-scm.com/docs/git#Documentation/git.txt-GITOPTIONALLOCKS)).
+  The probe also isolates Git global/system configuration to fixture settings.
+- Some upstream XML legend comments contain XML-invalid double hyphens. The test removes comments
+  before parsing elements; assertions inspect actual rows, roots, stamps, and source bodies rather
+  than matching words echoed in query text or legends.
+- This evidence covers the recorded x86-64 host and commands, not ARM64, every allowed option,
+  fresh-machine setup, full inherited-environment compatibility, or the eventual public launcher.

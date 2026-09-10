@@ -110,6 +110,19 @@ No optional candidates are approved for V1. MCP support requires a new specifica
 
 ## Phase 0: Live Feasibility Gate
 
+### Execution Status
+
+**Fail against the current zero-cache-delta contract (2026-09-10). Downstream phases stopped.**
+Live linked-worktree identity, dirty-source content, caller/history queries, and real WSL
+argument/environment/raw-stream/exit transport passed. Target source, Git metadata/configuration,
+and the skills workspace remained unchanged. However, `--for` creates a `ripwire-qchurn-*.bin`
+history cache despite `--no-cache`, inside the probe's disposable Linux `TMPDIR`. Cleanup succeeded.
+See `CodeResearch.md`, Live Phase 0 Evidence, for reproduction and public upstream source.
+
+The strict assertion remains in place and the live command intentionally exits non-zero. Do not
+mark this gate passed or start Phase 1 without an explicit decision about private temporary cache
+writes. Allowing them would revise the current contract, not fix the existing zero-write claim.
+
 ### Changes Required
 
 - **`Tests/Ripwire-Wsl-Toolkit.Tests.ps1`**: Add an explicit `-Mode Feasibility` using the existing
