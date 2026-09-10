@@ -23,7 +23,10 @@ with Windows Git, translate it for WSL, and scope the translated metadata to one
 - Preserve caller Git configuration overrides and append a process-local
   `core.fsmonitor=false` override.
 - Admit only a reviewed, closed set of `v0.5.0` analysis options; reject alternate roots, MCP,
-  cache/output generation, baseline, and editing controls before WSL starts.
+  caller-directed cache/output paths, baseline, and editing controls before WSL starts.
+- Enable persistent source/history caching in private, toolkit-managed Linux storage outside the
+  target and binary prefix. Reuse across calls, isolate linked worktree namespaces, expose cache
+  diagnostics and scoped explicit clearing, and preserve dirty-source/HEAD correctness.
 - Install a pinned upstream release from checksummed assets.
 - Diagnose prerequisites and configuration without silently enabling Windows features, replacing a
   distribution, or modifying host MCP configuration.
@@ -37,9 +40,19 @@ with Windows Git, translate it for WSL, and scope the translated metadata to one
 - A second project clone inside WSL.
 - Host-global or user-global MCP configuration.
 - An MCP protocol path adapter.
+- Additional quality/architecture commands, baseline creation/update, and acknowledgments. They
+  remain useful future work, but V1 continues to focus on exploration.
 - Claims that Ripwire is read-only or that a positional MCP root is a universal sandbox.
 - Support for one Ripwire process spanning multiple worktrees or arbitrary temporary repositories.
 - Hardcoded usernames, checkout paths, branches, Git metadata paths, or local distribution choices.
+
+### Cache decision after Phase 0
+
+The user approved persistent managed Linux caching after the live probe showed history-cache
+writes despite `--no-cache`. The former zero-cache-delta rule is superseded; no-project/Git/config
+mutation is not. WSL and Windows share the target files directly, so command restrictions and
+snapshots are safeguards, not a read-only filesystem sandbox. Revise and rerun the live cache
+criteria before accepting Phase 0; do not relabel the old failure as a completed pass.
 
 ## Expected User Flow
 

@@ -177,11 +177,15 @@ The root installer remains responsible only for installing the plugin as a unit.
 
 ## Open Questions
 
-Phase 0 exposed a contract decision: may analysis create history-cache files in a dedicated,
-per-invocation Linux temporary directory, outside the target, with explicit cleanup and failure
-reporting? The current plan disallows any cache delta even there. No exception has been approved.
-Keep Phase 1 blocked until that decision is made, or stop this release's implementation if the
-strict contract must remain.
+The cache-policy decision is resolved: the user approved persistent toolkit-managed Linux caching
+outside the target, with V1 still focused on exploration. `Spec.md` and `Plan.md` now allow owned
+cache/lock changes and retain project/Git/configuration non-mutation. This supersedes the former
+zero-cache-write requirement; the live evidence below describes that earlier contract.
+
+Remaining implementation evidence: revise the probe to enable ingestion caching, retain namespaces
+between processes, demonstrate reuse and dirty/HEAD freshness, and enforce the revised write
+boundary. The existing probe still uses `--no-cache` and the old failing assertion. Phase 0 is
+pending that rerun and acceptance, not retroactively passed.
 
 `Spec.md` still defines the exact V1 option language. This finding does not authorize removing
 `--for`, changing the pin, or silently broadening the launcher's accepted language.
@@ -230,7 +234,8 @@ worktree have different commits, so reading the wrong checkout cannot satisfy th
 | Cleanup | All created Windows fixture/download and Linux staging/cache directories removed |
 
 The first smoke run lacked the Linux prefix snapshot and appeared to pass. The strengthened run
-supersedes it: the overall gate is **Fail**, not partial approval to implement. Per-command snapshots
+supersedes it: the recorded gate was **Fail under the former contract**, not partial approval to
+implement. Per-command snapshots
 isolate the Linux changes to `--for`; rerunning with fresh fixtures reproduces the failure.
 
 ### Root cause and implications
@@ -246,10 +251,11 @@ one for each root, there; the staged executable and monitored Linux home configu
 locations did not change.
 
 Thus `--no-cache` is not a universal no-write guarantee. The same-worktree architecture and
-transport were not disproved, but the current zero-cache-write acceptance criterion is unmet.
+transport were not disproved, but the then-current zero-cache-write acceptance criterion was unmet.
 No attempt was made to patch upstream, force cache writes to fail, remove core analysis, or weaken
-the requirement. A possible next design is disposable per-invocation scratch storage with cleanup,
-but it requires explicit approval and revised acceptance criteria before implementation continues.
+the requirement during that run. The subsequent user-approved design instead retains managed
+cache namespaces across invocations for reuse; see the current specification. Disposable test
+namespaces still get cleaned at the end of a test, not between warm queries.
 
 Additional implementation findings:
 

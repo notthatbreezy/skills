@@ -7,6 +7,10 @@ present a small analysis interface to agents while colocated scripts own install
 Windows Git discovery, WSL path conversion, child-environment construction, and Ripwire process
 execution.
 
+V1 includes persistent, toolkit-managed Linux source/history caching. Exploration remains the
+feature scope; additional quality commands and baseline workflows are deferred. The safety
+boundary is no project/Git/configuration mutation, not no filesystem writes anywhere.
+
 The implementation will consume pinned upstream `v0.5.0` Linux release assets for x86-64 and ARM64.
 It will be independently authored; the unlicensed public launcher gist remains research evidence,
 not source material.
@@ -47,9 +51,10 @@ Git-backed queries, argument fidelity, failure propagation, and target non-mutat
    analysis instructions. Detailed human setup and compatibility guidance is disclosed through
    `references/guide.md`.
 2. **Machine-local configuration**: Installation records schema version, distribution, normalized
-   architecture, release, and Linux binary path at
+   architecture, release, Linux binary path, and Linux cache root at
    `%LOCALAPPDATA%\brownch-devtools\ripwire-wsl\config.json`. Every script accepts `-ConfigPath`;
-   installation also accepts `-LinuxInstallRoot`; tests always use disposable overrides for both.
+   installation also accepts `-LinuxInstallRoot` and `-LinuxCacheRoot`; tests always use disposable
+   configuration, binary, and cache locations.
 3. **Pinned release manifest**: `references/release.json` is the single source for version, source
    commit, architecture mapping, asset URLs, SHA-256 values, expected archive layout, and the exact
    V1 option table from `Spec.md`.
@@ -64,7 +69,7 @@ Git-backed queries, argument fidelity, failure propagation, and target non-mutat
 6. **Exact worktree and invocation contract**: The launcher requires `-WorktreePath`, resolves the
    root through Windows Git, constructs the only positional Ripwire root, and accepts only
    release-pinned analysis flags. It rejects non-flag roots, unknown flags, MCP/listen, edit,
-   baseline, cache/index/output, and other write-capable controls before starting WSL.
+   baseline, caller-directed cache/index/output, and other project-mutating controls before starting WSL.
 7. **Independent implementation**: No code is copied from the public gist because no reuse license
    is declared.
 8. **Transactional installation**: Download and extract to staging, validate archive and executable,
@@ -73,6 +78,13 @@ Git-backed queries, argument fidelity, failure propagation, and target non-mutat
 9. **Raw stream contract**: Pump stdout/stderr base streams as bytes; launcher diagnostics use
    stderr separately. Runtime requires PowerShell 7.
 10. **CLI-only V1**: MCP configuration and JSON protocol path adaptation remain a separate feature.
+11. **Managed persistent cache**: Follow `Spec.md`'s cache contract. Keep default ingestion caching
+    enabled; set child-only `TMPDIR` and `XDG_CACHE_HOME` beneath a private Linux namespace keyed by
+    release, architecture, and canonical worktree identity. Reuse across calls; serialize same-key
+    access and explicit clearing. Do not expose arbitrary cache destinations to analysis callers.
+12. **Non-mutation, not sandboxing**: `GIT_OPTIONAL_LOCKS=0`, the final fsmonitor override, command
+    exclusions, and before/after observations remain required. They do not prevent arbitrary WSL
+    writes to the shared Windows mount at the filesystem level.
 
 ## What We're NOT Doing
 
@@ -83,6 +95,9 @@ Git-backed queries, argument fidelity, failure propagation, and target non-mutat
 - Building an MCP protocol adapter.
 - Supporting arbitrary cross-root operations from one Ripwire process.
 - Forwarding arbitrary upstream Ripwire options.
+- Adding quality/architecture commands, baseline creation/update, or acknowledgments to V1.
+- Disabling all caches, deleting useful cache state after every query, or promising cache quotas,
+  automatic expiry, or a hard read-only filesystem sandbox.
 - Adding Pester or another test framework.
 - Testing against the user's primary target project.
 - Publishing, pushing, or opening the final PR during implementation unless separately authorized.
@@ -90,11 +105,11 @@ Git-backed queries, argument fidelity, failure propagation, and target non-mutat
 ## Phase Status
 
 - [ ] **Phase 0: Live feasibility gate** - Prove core Ripwire worktree behavior and real
-  argument/environment/stream transport; stop for a go/no-go decision before Phase 1.
+  argument/environment/stream transport with managed warm-cache reuse; stop for a go/no-go decision before Phase 1.
 - [ ] **Phase 1: Package contracts and deterministic core** - Add the skill package, release
-  manifest, configuration model, and pure validation/conversion helpers with self-tests.
+  manifest, configuration/cache model, and pure validation/conversion helpers with self-tests.
 - [ ] **Phase 2: Installer and doctor** - Implement repeatable pinned installation and read-only
-  diagnostics with mocked contract coverage.
+  diagnostics and scoped cache maintenance with mocked contract coverage.
 - [ ] **Phase 3: Worktree-aware launcher** - Implement Windows Git discovery, WSL translation,
   environment preservation, stream fidelity, and exit propagation.
 - [ ] **Phase 4: Isolated live integration** - Prove real WSL/Ripwire behavior against disposable
@@ -112,16 +127,18 @@ No optional candidates are approved for V1. MCP support requires a new specifica
 
 ### Execution Status
 
-**Fail against the current zero-cache-delta contract (2026-09-10). Downstream phases stopped.**
+**Original run failed the former zero-cache-delta contract (2026-09-10). Cache-enabled rerun pending.**
 Live linked-worktree identity, dirty-source content, caller/history queries, and real WSL
 argument/environment/raw-stream/exit transport passed. Target source, Git metadata/configuration,
 and the skills workspace remained unchanged. However, `--for` creates a `ripwire-qchurn-*.bin`
 history cache despite `--no-cache`, inside the probe's disposable Linux `TMPDIR`. Cleanup succeeded.
 See `CodeResearch.md`, Live Phase 0 Evidence, for reproduction and public upstream source.
 
-The strict assertion remains in place and the live command intentionally exits non-zero. Do not
-mark this gate passed or start Phase 1 without an explicit decision about private temporary cache
-writes. Allowing them would revise the current contract, not fix the existing zero-write claim.
+The user has approved managed persistent Linux caching and retained exploration as the V1 scope.
+This supersedes the zero-cache-delta requirement, not the historical observation. The existing
+probe still contains the old assertion and `--no-cache`; revise and rerun it against the criteria
+below before marking the gate passed. No runtime code or live results are changed by this plan
+revision, and Phase 1 remains gated on accepted evidence.
 
 ### Changes Required
 
@@ -148,13 +165,24 @@ writes. Allowing them would revise the current contract, not fix the existing ze
   values. Test spaced/Unicode/quoted/empty/backslash/equals-sign/path-like values at this lower-level
   boundary even where the eventual public option grammar rejects those tokens.
 - Run pinned Ripwire through that same transport against both fixture roots, with the sole
-  positional root and `--no-cache`. Prove default orientation, stamped `--for`, a known caller
+  positional root and default caching enabled (no injected `--no-cache`). Direct both cache families
+  into separate private namespaces in a disposable `-LinuxCacheRoot`, retained between subprocess
+  calls for the duration of the test. Prove default orientation, stamped `--for`, a known caller
   query, and a Git-backed `--pr-context` query against fixture history. Check that linked-worktree
   results reflect its distinct HEAD and uncommitted content, not the main checkout.
 - Reuse Phase 4's independent Windows Git/`wslpath` identity oracles, baseline timing, and fsmonitor
   positive/negative controls. Capture source, metadata, configuration, and cache/sidecar snapshots
-  after fixture/staging setup; analysis must introduce no undeclared delta. Cleanup is limited to
-  the explicitly created fixture and staging paths.
+  after fixture/staging/cache-root setup. Only declared cache/lock subtrees may change; the rest
+  of the Linux prefix, target/Git/configuration, and primary workspace must stay unchanged. Cleanup
+  removes the explicitly created fixture, staging, and test cache at the end, not between warm runs.
+- Repeat identical queries through new processes with the same namespace and demonstrate actual
+  source-index reuse, using upstream cache-hit diagnostics or another independent reuse observable,
+  not merely file existence or a faster elapsed time. Compare results with a fresh empty test
+  namespace; then change an uncommitted body and advance HEAD using Windows Git and verify fresh
+  results in the reused namespace. Record cold/warm timings as observations, not a pass threshold.
+- Exercise missing/corrupt entries and namespace isolation across linked worktrees. Rebuilds must
+  stay inside managed storage and preserve results; an out-of-namespace write or stale result fails
+  the gate. The minimal probe need not implement the production maintenance interface yet.
 - **`.paw/work/ripwire-wsl-toolkit/CodeResearch.md`**: Record reproducible commands, pinned binary
   provenance, host/runtime versions without personal identifiers, expected versus observed
   results, limitations, and a `Pass | Blocked | Fail` gate outcome. No fabricated pass from mocks,
@@ -176,7 +204,10 @@ writes. Allowing them would revise the current contract, not fix the existing ze
   concurrent output larger than pipe capacity finishes within a timeout, including partial output
   followed by a chosen non-zero exit whose code propagates exactly.
 - [ ] Fsmonitor sentinel fires in the positive control but not under the final override; analysis
-  leaves source, Git metadata/configuration, and monitored cache/sidecar paths unchanged.
+  leaves source, Git metadata/configuration, binaries, and out-of-namespace paths unchanged.
+- [ ] Persistent source/history cache reuse across processes is observable; cached and fresh
+  results agree, including after dirty-source/HEAD changes. Each worktree has its own namespace.
+  Test cleanup removes all disposable cache data, and failures remain explicit.
 
 #### Manual Verification and Go/No-Go
 
@@ -206,7 +237,8 @@ writes. Allowing them would revise the current contract, not fix the existing ze
   the bundled launcher, keep mutations and verification on Windows, and surface unsupported states.
 - **`plugins/devtools/skills/ripwire-wsl/references/guide.md`**: Document human setup, supported
   boundaries, local configuration, release pin, troubleshooting, mounted-filesystem performance,
-  and the CLI-only/single-worktree contract.
+  the CLI-only/single-worktree contract, persistent cache retention/usage/clear, and the absence of
+  an OS-level write barrier. Distinguish managed caches from project baselines.
 - **`plugins/devtools/skills/ripwire-wsl/references/release.json`**: Declare `v0.5.0`, source commit
   `bacfa3b7b3ad13648ce3892de06af05b6b55a2ac`, accepted probe values
   (`x86_64|amd64`, `aarch64|arm64`), normalized assets (`x64`, `arm64`), URLs, archive SHA-256,
@@ -215,12 +247,14 @@ writes. Allowing them would revise the current contract, not fix the existing ze
 - **`plugins/devtools/skills/ripwire-wsl/scripts/RipwireWsl.Common.ps1`**: Centralize typed/structured
   configuration and launch-context construction, manifest/config parsing, canonical worktree
   normalization, invocation classification, architecture mapping, child-only WSLENV composition,
-  and command-result handling. Use closed states from `Spec.md` and exhaustive switches; do not use
+  cache namespace/ownership/containment validation, and command-result handling. Use closed states
+  from `Spec.md` and exhaustive switches; do not use
   boolean bags or success-shaped fallbacks.
 - **`plugins/devtools/skills/ripwire-wsl/scripts/invoke-ripwire-wsl.sh`**: Add the Linux bootstrap
   contract for validating imported worktree/Git variables and `GIT_CONFIG_COUNT`, preserving every
   indexed pair, appending `core.fsmonitor=false`, printing JSON only in diagnostic mode, and running
-  `exec "$RIPWIRE_BIN" "$@"`.
+  `exec "$RIPWIRE_BIN" "$@"`. Analysis acquires namespace access and prepares owned cache paths;
+  internal diagnostics must neither create caches nor invoke a cache-writing Ripwire doctor.
 - **`.gitattributes`**: Pin
   `plugins/devtools/skills/ripwire-wsl/scripts/*.sh text eol=lf` so the packaged bootstrap is
   runnable from Windows checkouts. Tests also verify LF bytes.
@@ -247,6 +281,9 @@ writes. Allowing them would revise the current contract, not fix the existing ze
   invokes `/bin/bash` rather than relying on NTFS executable bits or a shebang.
 - [ ] Static package tests find no username, absolute checkout path, session branch, Git metadata
   path, or host MCP configuration.
+- [ ] Cache-key tests separate linked worktrees and release/architecture versions while retaining a
+  namespace across HEAD changes. Reject unsafe ownership, escaped links, Windows-backed paths,
+  and installation/target/Git overlap. Environment tests preserve parent cache settings.
 
 #### Manual Verification
 
@@ -268,6 +305,9 @@ writes. Allowing them would revise the current contract, not fix the existing ze
   `$HOME/.local/share/brownch-devtools/ripwire-wsl/<version>/bin` directory; run post-swap health;
   roll back binary/config after any failure; and atomically commit the versioned config last.
   `-LinuxInstallRoot` replaces the default root for isolated tests.
+  `-LinuxCacheRoot` selects private Linux cache storage and is recorded in config separately from
+  the transactional binary prefix. Create/validate only owned cache-root metadata during setup;
+  do not purge existing valid cache namespaces on reinstall, rollback, or upgrade.
   Binary staging and backup are sibling paths under the destination parent; the config temporary
   and backup are sibling paths under the config parent. Every commit/rollback transition uses a
   same-filesystem rename, and cleanup failure is reported separately from rollback success/failure.
@@ -275,9 +315,17 @@ writes. Allowing them would revise the current contract, not fix the existing ze
   checks for Windows Git, WSL, selected distribution, WSL version, Linux Git, archive support,
   release manifest, local configuration, installed binary, version, recorded release/archive
   identity, path translation, and required worktree readiness when `-WorktreePath` is supplied.
+  Include resolved cache location, ownership/permissions, namespace readiness, and usage. If the
+  namespace does not yet exist, report first-use creation without creating a probe file. Do not
+  run upstream cache-writing diagnostics to implement the read-only toolkit doctor.
   Never compare installed-binary bytes to the archive digest; emit Skipped when no binary digest is
   declared.
   Emit the stable diagnostic schema from `Spec.md`, with `-Json` for automation.
+- **`plugins/devtools/skills/ripwire-wsl/scripts/Clear-RipwireWslCache.ps1`**: Add explicit
+  per-worktree maintenance using the configured release/architecture and `-ConfigPath`. Validate
+  ownership/containment, coordinate with analysis using the same namespace lock, and delete only
+  that namespace's derived cache data. Never remove the root, another worktree/version, installation,
+  source, or Git metadata. Report failure; no silent success after failed deletion.
 - **`Tests/Ripwire-Wsl-Toolkit.Tests.ps1`**: Mock download, hashing, WSL, Linux architecture, archive,
   and version calls. Cover clean install, repeat install, stale install, checksum mismatch,
   unsupported architecture, partial install, missing prerequisite, and failed atomic replacement.
@@ -298,6 +346,9 @@ writes. Allowing them would revise the current contract, not fix the existing ze
   config entries.
 - [ ] Doctor fixtures report ready, warning, and failed states deterministically and perform no
   writes.
+- [ ] Cache maintenance tests cover selected-namespace deletion, absent cache, unsafe path/owner,
+  active analysis contention, bounded lock failure, and cleanup failure. Other namespaces and
+  binary/configuration bytes remain unchanged; installation rollback does not clear valid caches.
 
 #### Manual Verification
 
@@ -317,9 +368,12 @@ writes. Allowing them would revise the current contract, not fix the existing ze
   exact worktree, Git directory, and common directory; translate known filesystem fields through
   the configured distribution; parse all user tokens as pinned analysis flags only; construct the
   sole positional Linux root; preserve and extend `WSLENV` in one child environment; invoke WSL
-  exactly as `wsl.exe --distribution <name> --cd <linux-root> --exec /bin/bash -- <translated-linux-bootstrap> -- <linux-root> <allowed-args> --no-cache`;
+  exactly as `wsl.exe --distribution <name> --cd <linux-root> --exec /bin/bash -- <translated-linux-bootstrap> -- <linux-root> <allowed-args>`;
   set `RIPWIRE_BIN` and internal diagnostic mode through the child environment; pump raw
   stdout/stderr streams concurrently; and return the child exit code.
+  Select the validated managed namespace, pass child-only `TMPDIR`, `XDG_CACHE_HOME`, and
+  `GIT_OPTIONAL_LOCKS=0`, and coordinate exclusive same-namespace access for the process lifetime.
+  Cache state survives normal invocation completion; do not add a per-query cache deletion.
 - **`plugins/devtools/skills/ripwire-wsl/scripts/RipwireWsl.Common.ps1`**: Add ProcessStartInfo-based
   native argument handling that preserves empty, quoted, spaced, Unicode, trailing-backslash,
   equals-sign, and path-like values without converting arbitrary arguments based on filesystem
@@ -337,7 +391,7 @@ writes. Allowing them would revise the current contract, not fix the existing ze
   changing `.git`, local config, or global config.
 - [ ] Invalid directories, deleted worktrees, mismatched roots, and failed path translation stop
   before Ripwire starts.
-- [ ] Alternate roots, unknown options, MCP/listen, edit, baseline, cache/index/output, and every
+- [ ] Alternate roots, unknown options, MCP/listen, edit, baseline, caller-directed cache/index/output, and every
   excluded pinned option stop before `wsl.exe` starts with a stable error code.
 - [ ] Empty, quoted, spaced, Unicode, backslash, equals-sign, and path-like non-path arguments reach
   the fake child with exact boundaries.
@@ -348,6 +402,9 @@ writes. Allowing them would revise the current contract, not fix the existing ze
   A bounded-time shim writes more than pipe capacity to both streams and proves no deadlock.
 - [ ] The child receives existing valid Git override entries followed by
   `core.fsmonitor=false`; the parent environment remains unchanged.
+- [ ] Repeated calls select the same managed namespace and different worktrees select different
+  ones; neither `--no-cache` nor arbitrary output paths are injected. Cache path/permission/lock
+  failures stop explicitly, with no fallback into the target or shared default directories.
 
 #### Manual Verification
 
@@ -368,6 +425,9 @@ writes. Allowing them would revise the current contract, not fix the existing ze
   `-ConfigPath` and `-LinuxInstallRoot`; download/install additionally require both
   `-AllowDownload` and `-AllowInstall`. Without both capabilities, Integration requires an
   already-staged test binary and performs no network or install mutation.
+  Require a separate disposable `-LinuxCacheRoot`; retain its namespaces between warm queries and
+  remove them only during declared test cleanup. Cache writes do not require download/install
+  permissions and do not authorize writes to the binary prefix or configuration.
 - Exercise Ripwire root/orientation, targeted analysis, dirty-state analysis, and Git-backed history
   queries. Use doctor JSON plus bootstrap diagnostic mode to compare canonical Windows/Linux root,
   Git directory, common directory, and imported environment to independent Windows Git and
@@ -385,8 +445,9 @@ writes. Allowing them would revise the current contract, not fix the existing ze
 - Canonical comparison trims trailing separators, resolves full paths and links where the platform
   API exposes them, compares Windows paths case-insensitively, and compares Linux paths exactly.
   The non-mutation baseline is captured after fixture and optional test installation setup but
-  before launcher/doctor execution. With injected `--no-cache`, no target, Git, config, prefix,
-  cache, or sidecar delta is permitted during analysis scenarios.
+  before launcher/doctor execution. Only managed cache/lock subtrees may change during analysis;
+  target, Git, config, binary prefix, and out-of-namespace sidecars must not. Toolkit doctor has
+  no write exception. Declared source/HEAD/cache-corruption setup starts a new snapshot interval.
 - Add a synthetic `core.fsmonitor` hook sentinel in the fixture and prove that Ripwire's Git calls
   do not execute it under the launcher override. A positive-control arm runs the same Git operation
   without the appended override and must create the sentinel; the launcher arm must not.
@@ -403,13 +464,16 @@ writes. Allowing them would revise the current contract, not fix the existing ze
 - [ ] A stamped `--for` result reports the expected nine-character `HEAD` prefix and dirty/shallow
   suffix.
 - [ ] Dirty-file and Git-backed queries observe fixture changes.
+- [ ] Finished-toolkit cold/warm/fresh-namespace comparisons reproduce Phase 0 cache evidence;
+  edits and HEAD changes remain fresh. Explicit clear followed by analysis rebuilds safely,
+  concurrent same-namespace operations are coordinated, and other worktrees are unaffected.
 - [ ] Spaces and Unicode survive the real Windows-to-WSL boundary.
 - [ ] The fsmonitor sentinel is not created, the stamped result proves Git executed, and bootstrap
   diagnostic output proves preexisting valid override entries remain visible to the child.
 - [ ] Failure cases preserve exact non-zero exit codes and actionable stderr.
 - [ ] Before/after snapshots cover fixture source, `.git`, Windows local/global config, disposable
   toolkit config, disposable Linux prefix, cache/sidecar paths, and primary repository; documented
-  test setup/cleanup paths are the only allowed differences.
+  cache/lock changes and documented test setup/maintenance/cleanup are the only allowed differences.
 
 #### Manual Verification
 
@@ -434,7 +498,7 @@ writes. Allowing them would revise the current contract, not fix the existing ze
 - **`README.md`**: Add the capability to the repository catalog and document its verification
   command.
 - **`plugins/devtools/CHANGELOG.md`**: Record the new skill, pinned upstream release, launcher,
-  installer, doctor, tests, and version bump.
+  installer, doctor, persistent managed cache/clear, tests, and version bump.
 - **`.paw/work/ripwire-wsl-toolkit/Docs.md`**: Record the as-built interfaces, configuration
   location contract, release identity, diagnostics, verification commands, and known limitations
   using `paw-docs-guidance`.
@@ -459,7 +523,7 @@ writes. Allowing them would revise the current contract, not fix the existing ze
 #### Manual Verification
 
 - [ ] Documentation distinguishes plugin installation, Ripwire runtime installation, doctor, and
-  agent invocation.
+  agent invocation, plus persistent cache retention/maintenance versus deferred baseline workflows.
 - [ ] Documentation contains no internal scratch paths, private session names, machine-specific
   settings, or unsupported MCP/read-only claims.
 - [ ] Every public technical claim links to upstream Ripwire, Git, or Microsoft WSL documentation.
@@ -498,14 +562,14 @@ requires the capabilities and permission described above. Present its outcome fo
 before Phase 1. Final review and PR gates remain unchanged.
 
 The prior two-cycle review covered the earlier sequence. This user-directed revision adds a
-blocking feasibility gate; it does not claim those reviewers reviewed this revised sequence.
+blocking feasibility gate and managed caching; it does not claim those reviewers reviewed these revisions.
 
 ## Acceptance Coverage Matrix
 
 | Obligation | Phase | Fixture/action | Oracle | Failure control |
 |---|---:|---|---|---|
 | SC-001 root/commit/dirty | 0,4 | Disposable roots with distinct HEADs; live probe then finished toolkit; stamped `--for` | Canonical path equality; 9-char Windows HEAD with dirty/shallow suffix and uncommitted content | Fail if stamp absent, main checkout substituted, or diagnostic lacks Git fields |
-| SC-002 non-mutation | 0,3-4 | Snapshot target, Git config, toolkit config/prefix, caches, primary repo | Exact before/after set and byte comparison excluding declared setup paths | Fail on any undeclared delta |
+| SC-002 non-mutation | 0,3-4 | Snapshot target, Git config, toolkit config/prefix, caches, primary repo | Exact comparison outside declared managed cache/lock and setup paths | Fail on any undeclared delta |
 | SC-003 args/streams/exit | 0,3-4 | Real WSL/Bash byte probe first; deterministic shims and finished-toolkit rerun; over-pipe-capacity output | Exact argv records and byte-array equality | Assert one child start, bounded completion, and exact exit |
 | SC-004 Git overrides | 0-1,3-4 | Empty, populated, malformed, duplicate, extra-index, Unicode WSLENV/GIT blocks plus fsmonitor positive/negative control arms | Ordered child diagnostic entries; parent bytes unchanged; sentinel fires only without override | WSL not started for malformed state or failed positive control |
 | SC-005 install outcomes | 2 | Clean, repeated, stale, bad hash, unsupported arch/runtime, partial install, every same-filesystem rename failure | Transaction state, command log, binary/config snapshots | No commit before staged health; rollback after later failure; ARM64 qualified by staged health |
@@ -513,8 +577,10 @@ blocking feasibility gate; it does not claim those reviewers reviewed this revis
 | SC-007 portability/policy | 1,5 | Package scan and option-policy fixtures | No machine identities; CLI-only/single-root text; closed allowlist | Reject unknown/write/control options |
 | SC-008 runner compatibility | 0-5 | Default deterministic mode; explicit Feasibility and Integration | Expected mode list and exit 0 | Default never invokes live WSL; 5.1 runtime exits before effects |
 | SC-009 plugin discovery | 5 | Staged package manifest/frontmatter validation | Skill resolves from package path/version under test | No user Copilot config access |
-| SC-010 analysis boundary | 1,3 | Exact Spec option table; every other known/unknown flag and non-flag token | Invocation variant and stable rejection code; zero WSL starts; injected `--no-cache` | Target, cache paths, and parent environment snapshots unchanged |
+| SC-010 analysis boundary | 1,3 | Exact Spec option table; every other known/unknown flag and non-flag token | Invocation variant and stable rejection code; rejected invocations start no WSL | Rejected invocations leave target, caches, and parent environment unchanged |
 | SC-011 transaction | 2 | Every pre/post-swap failure point | Prior bytes/mode/config preserved or restored | Inject one failure at each state transition |
+| SC-012 cache reuse/freshness | 0,3-4 | Warm process, fresh namespace, dirty edit, HEAD change, second worktree | Observable source-cache reuse and equivalent current results; timings recorded | Stale results or shared worktree namespaces fail |
+| SC-013 cache write boundary/maintenance | 0-4 | Missing/corrupt cache, unsafe paths, permission/lock failures, explicit clear | Only owned cache/lock changes; safe rebuild and scoped clear | No fallback, deletion outside namespace, or silent failure |
 
 The deterministic test script defaults to `AllDeterministic` and runs Unit, Setup, Launcher,
 manifest, and package checks as they are implemented. `Feasibility` and `Integration` are opt-in,

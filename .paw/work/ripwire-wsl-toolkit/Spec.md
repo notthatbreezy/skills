@@ -16,12 +16,17 @@ package. Setup must distinguish toolkit installation from host prerequisite chan
 the pinned Ripwire artifact after explicit invocation, but it must report missing Windows or WSL
 prerequisites rather than silently changing them.
 
-The toolkit is analysis-only and CLI-first. It accepts a reviewed, closed subset of the pinned
-Ripwire release's analysis options, constructs the positional root itself, and rejects write,
-output-generation, alternate-root, and MCP controls before WSL starts. Windows tools remain
-responsible for editing, building, testing, and Git mutation. MCP integration is not part of V1
+The toolkit is exploration-focused and CLI-first. It accepts a reviewed, closed subset of the pinned
+Ripwire release's analysis options, constructs the positional root itself, and rejects project-edit,
+caller-directed output, alternate-root, and MCP controls before WSL starts. Persistent source-index
+and Git-history caches are permitted only in toolkit-managed Linux storage outside the worktree.
+Windows tools remain responsible for editing, building, testing, and Git mutation. MCP integration is not part of V1
 because command-line path translation does not solve paths embedded later in JSON protocol
 messages.
+
+This is a command-policy and monitored non-mutation boundary, not a read-only filesystem sandbox.
+WSL accesses the same Windows files; an unexpected write there would be immediately visible on
+Windows. Cache support does not authorize project, Git metadata, baseline, or configuration writes.
 
 ## Objectives
 
@@ -32,6 +37,8 @@ messages.
 - Preserve exact worktree identity, arguments, output streams, and exit status across Windows and
   WSL.
 - Package usage guidance and regression coverage with the existing Copilot plugin.
+- Reuse source parsing and Git-history work across invocations through managed persistent Linux
+  caching, without confusing caches with project baselines or weakening worktree correctness.
 
 ## User Scenarios & Testing
 
@@ -51,6 +58,10 @@ Acceptance Scenarios:
    configuration is rewritten.
 3. Given no valid worktree, when analysis is requested, then the launcher fails clearly without
    using another checkout.
+4. Given a prior successful analysis, when the same worktree is queried again, then its managed
+   Linux cache is eligible for reuse; changes to source or HEAD must still be reflected.
+5. Given a different linked worktree, when analysis runs, then it uses a separate cache namespace
+   even when both worktrees share a common Git directory.
 
 ### User Story P2 - Prepare a machine repeatably
 
@@ -107,9 +118,9 @@ Acceptance Scenarios:
    code.
 4. Given valid inherited Git configuration overrides, when launch occurs, then they are preserved
    and the required safety override is appended last for the child process only.
-5. Given an alternate root, unknown option, MCP control, edit operation, baseline, cache/index
-   output, or other write-capable option, when launch is requested, then it is rejected before WSL
-   starts.
+5. Given an alternate root, unknown option, MCP control, edit operation, baseline, or caller-chosen
+   cache/index/output path, when launch is requested, then it is rejected before WSL starts.
+   Toolkit-managed internal caching is not a caller-selected output operation.
 
 ### Edge Cases
 
@@ -127,6 +138,8 @@ Acceptance Scenarios:
 - Ripwire failure before output, after partial output, and from an unavailable binary.
 - Requests that imply another repository root, an MCP server, or an option outside the pinned
   analysis allowlist.
+- Missing, corrupt, stale, or unwritable caches; simultaneous queries; cache maintenance during an
+  active query; and unsafe cache paths that resolve into Windows storage or another user's files.
 
 ## Requirements
 
@@ -173,12 +186,21 @@ Acceptance Scenarios:
 - **FR-015**: The toolkit shall identify single-worktree and CLI-only boundaries rather than
   claiming universal cross-root or MCP compatibility. (Stories: P1, P3)
 - **FR-016**: The launcher shall parse arguments against a release-pinned closed analysis allowlist,
-  construct the sole positional root itself, and reject unknown, write-capable, output-generating,
-  cache/index, baseline, MCP/listen, and additional-root controls before creating a WSL process.
+  construct the sole positional root itself, and reject unknown, project-mutating, caller-directed
+  output/cache/index, baseline, MCP/listen, and additional-root controls before creating a WSL process.
   (Stories: P1, P4)
 - **FR-017**: Installation shall be transactional: validate in staging, preserve prior binary and
   configuration bytes until post-swap health succeeds, restore both after any post-swap failure,
   and commit configuration last. (Stories: P2)
+- **FR-018**: Caching shall be enabled by default for source ingestion and Git history, using a
+  persistent, user-private Linux cache namespace scoped to the pinned release, architecture, and
+  canonical worktree identity. No cache may be located in the target, Git metadata, Windows-mounted
+  storage, or binary installation directory. Caches shall never override current source or HEAD
+  identity and shall remain disposable derived data. (Stories: P1, P4)
+- **FR-019**: The toolkit shall expose cache location/readiness through read-only diagnostics and
+  an explicit, scoped cache-clear operation. Maintenance and analysis shall coordinate access;
+  invalid locations, permission/lock failures, and failed cleanup shall be reported rather than
+  silently falling back to a different directory. (Stories: P2, P3, P4)
 
 ### Key Entities
 
@@ -189,11 +211,14 @@ Acceptance Scenarios:
 - **Manifest Parse Result**: Valid or one of Unreadable, MalformedJson, UnsupportedSchema,
   MissingField, UnknownField, DuplicateArchitecture, InvalidDigest, or InconsistentAsset.
 - **Local Toolkit Configuration**: Versioned machine-local JSON containing distribution identity,
-  normalized architecture, release identity, and Linux absolute binary path. Its closed states are
-  Missing, Unreadable, Malformed, UnsupportedVersion, ValidButStale, and Valid.
+  normalized architecture, release identity, and Linux absolute binary and cache-root paths.
+  Its closed states are Missing, Unreadable, Malformed, UnsupportedVersion, ValidButStale, and Valid.
 - **Worktree Launch Context**: Validated canonical Windows root, translated Linux root, Git
   directory, common directory, closed invocation classification, child-only `WSLENV`, and launch
   arguments used by one process.
+- **Managed Cache Context**: Validated Linux-owned cache root, release/architecture/worktree key,
+  derived temporary/cache directories, and exclusive per-namespace access. Raw caller paths do not
+  reach cache creation or deletion without ownership and containment validation.
 - **Invocation Classification**: AllowedDefaultMap, AllowedAnalysis, RejectedAdditionalRoot,
   RejectedMutation, RejectedMcp, RejectedOutput, RejectedUnknown, or InvalidSyntax. AllowedAnalysis
   carries one primary selector plus validated modifiers.
@@ -209,8 +234,9 @@ Acceptance Scenarios:
 
 ### V1 Analysis Option Contract
 
-The launcher supplies the sole positional root and always injects `--no-cache`. Callers may provide
-only these `v0.5.0` forms:
+The launcher supplies the sole positional root and enables upstream default caching by omitting
+`--no-cache`. It controls cache placement through the child environment, not a caller-supplied
+`--cache` path. Callers may provide only these `v0.5.0` forms:
 
 | Kind | Allowed forms |
 |---|---|
@@ -223,6 +249,43 @@ caller-supplied path option and its value is translated as a known path. Every o
 unknown option is rejected; rejection is classified as additional-root, mutation, MCP, output, or
 unknown. The release manifest records this table so changing the Ripwire pin cannot silently change
 the accepted language.
+
+The exploration selectors above are unchanged. Additional quality commands (including
+`--metrics`, `--hotspots`, `--test-gate`, `--edit-check`, and `--quality-delta`), architecture/quality
+baseline creation or updates, and acknowledgment commands remain deferred. They are not all
+classified as mutating; they simply have not been included and qualified for V1.
+
+### Managed Cache Contract
+
+- Default root: `$HOME/.cache/brownch-devtools/ripwire-wsl` inside the selected distribution.
+  Setup accepts `-LinuxCacheRoot` and records the resolved Linux path as `cacheRoot`. Tests use a
+  disposable override. Configuration remains machine-local; agents need no cache-path arguments.
+- Namespaces separate release identity, architecture, and a hash of canonical worktree root plus
+  Git directory/common-directory identity. Sharing a Git common directory does not merge worktree
+  caches. A HEAD change does not select a new toolkit namespace; upstream freshness handling must
+  validate/rebuild its entries.
+- Child-only `TMPDIR=<namespace>/tmp` and `XDG_CACHE_HOME=<namespace>/xdg` direct both default
+  ingestion caching and history caches into owned storage. `TMPDIR` takes precedence for the
+  observed history-cache family. Preserve the parent's values; do not edit shell startup files.
+- Resolve and validate native Linux storage, ownership, restrictive permissions, and containment
+  before use; reject links that escape the owned root and Windows-backed locations. Do not adopt
+  another user's directory or fall back to a shared/default cache on failure.
+- Reuse the namespace across successful and failed invocations; do not delete it after every
+  query. Missing or invalid entries may be recomputed only within that same managed namespace.
+  Cache data may contain parsed source and repository-history metadata; document this retention.
+- Serialize operations within a namespace using an exclusive lock with a bounded wait. Different
+  worktree namespaces may run independently. Explicit clear uses the same coordination and must
+  not delete data beneath an active analysis.
+- `Clear-RipwireWslCache.ps1 -WorktreePath <path> [-ConfigPath <path>]` removes only that validated
+  worktree namespace for the configured release/architecture, never the overall cache root,
+  installation, source, or Git directories. Surface clear failures with non-zero exit and stderr.
+  V1 does not promise a disk quota or automatic expiry: report location/usage and document explicit
+  clearing, including retention of older release namespaces until separately maintained.
+- Creating/updating/rebuilding owned cache files and lock state is the only analysis-write
+  exception. Setup, explicit maintenance, and disposable test cleanup have their own declared
+  effects. Target/Git/configuration/binary changes remain forbidden during analysis.
+
+### Invocation Rejection Codes
 
 | Rejection result | Symbolic code | Exit code |
 |---|---|---:|
@@ -247,13 +310,17 @@ translated Linux values use `/u`, never `/p`, in the child-only `WSLENV`:
 | `GIT_CONFIG_KEY_<n>` / `GIT_CONFIG_VALUE_<n>` | Validated caller entries | `<name>/u` |
 | `RIPWIRE_BIN` | Linux absolute path from valid local config | `RIPWIRE_BIN/u` |
 | `RIPWIRE_WSL_DIAGNOSTIC` | Internal `0` or `1` | `RIPWIRE_WSL_DIAGNOSTIC/u` |
+| `GIT_OPTIONAL_LOCKS` | Internal `0` to avoid optional index refresh writes | `GIT_OPTIONAL_LOCKS/u` |
+| `TMPDIR` | Validated namespace temporary directory | `TMPDIR/u` |
+| `XDG_CACHE_HOME` | Validated namespace cache directory | `XDG_CACHE_HOME/u` |
 
 Existing `WSLENV` entries are preserved in order. Duplicate names, conflicting flags, malformed
 tokens, or a `/p` request for these pretranslated values fail before process creation.
 
 The local configuration schema version is `1` and requires exactly
 `schemaVersion`, `distribution`, `architecture`, `releaseVersion`, `releaseCommit`,
-`archiveSha256`, and `binaryPath`. Unknown fields are rejected so configuration evolution requires
+`archiveSha256`, `binaryPath`, and `cacheRoot`. This is a revision to the unpublished V1 schema.
+Unknown fields are rejected so configuration evolution requires
 an explicit schema version.
 
 ### Cross-Cutting / Non-Functional
@@ -298,6 +365,14 @@ an explicit schema version.
 - **SC-011**: Every install failure preserves or restores the prior binary bytes, executable mode,
   and configuration bytes; successful commit occurs only after staged and post-swap health checks.
   (FR-008, FR-017)
+- **SC-012**: Repeated processes using one cache namespace demonstrate source-cache reuse with
+  unchanged analysis results. Dirty-source and HEAD changes produce current results; distinct
+  linked worktrees do not share toolkit namespaces. Warm/cold timings are recorded without an
+  unmeasured speedup promise. (FR-018)
+- **SC-013**: Snapshots permit only declared managed-cache/lock changes during analysis and detect
+  any target, Git, configuration, binary, or out-of-namespace write. Missing/corrupt cache,
+  permission, escaped-path, contention, and clear-failure cases preserve this boundary. Explicit
+  clear removes only the selected namespace; the next analysis rebuilds it. (FR-018, FR-019)
 
 ## Assumptions
 
@@ -320,6 +395,7 @@ an explicit schema version.
 - Plugin manifest, version, changelog, and user-facing documentation updates.
 - Deterministic unit/contract tests and explicit live WSL integration tests using disposable
   fixtures.
+- Persistent Linux source/history caches, cache diagnostics, and scoped explicit maintenance.
 
 ### Out of Scope
 
@@ -330,6 +406,9 @@ an explicit schema version.
 - MCP JSON path translation or claims of read-only sandboxing.
 - Multi-worktree or arbitrary cross-root requests in one process.
 - Raw pass-through of arbitrary Ripwire options.
+- Additional quality/architecture command families, baseline writes, and acknowledgments; cache
+  support does not expand the exploration allowlist.
+- Automatic cache expiry/quotas and a hard read-only filesystem sandbox.
 - Publishing, pushing, opening a PR, or changing user-global configuration during planning.
 
 ## Dependencies
@@ -362,6 +441,10 @@ an explicit schema version.
   changes.
 - **Unexpected host mutation**: Keep doctor read-only and require separate explicit action for host
   prerequisites.
+- **Cache retention and stale reuse**: Use private scoped Linux storage; prove dirty/HEAD freshness,
+  expose location/usage and explicit clear, and never equate a cache hit with current correctness.
+- **Analysis is not filesystem enforcement**: Keep project-write exclusions and snapshots even
+  with managed caching. An allowlist is not an OS-level write barrier.
 
 ## References
 
